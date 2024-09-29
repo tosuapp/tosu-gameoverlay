@@ -4,6 +4,10 @@
 #include <include/cef_sandbox_win.h>
 #include <tosu_overlay/simple_app.h>
 
+#include <MinHook.h>
+
+#include <thread>
+
 // Uncomment this line to manually enable sandbox support.
 // #define CEF_USE_SANDBOX 1
 
@@ -11,6 +15,7 @@
 #pragma comment(lib, "cef_sandbox.lib")
 #endif
 
+#if DESKTOP
 // Entry point function for all processes.
 int APIENTRY wWinMain(HINSTANCE hInstance,
                       HINSTANCE hPrevInstance,
@@ -102,3 +107,32 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 
   return 0;
 }
+#else
+
+namespace {
+void* o_swap_buffers;
+}
+
+bool __stdcall swap_buffers_hk(HDC hdc) {
+  return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
+}
+
+void main_thread() {
+  AllocConsole();
+  freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
+
+  MH_Initialize();
+
+  MH_CreateHookApi(L"opengl32.dll", "wglSwapBuffers",
+                   reinterpret_cast<void*>(swap_buffers_hk), &o_swap_buffers);
+
+  MH_EnableHook(MH_ALL_HOOKS);
+}
+
+int32_t __stdcall DllMain(uintptr_t, uint32_t reason, uintptr_t) {
+  if (reason == 1) {
+    std::thread{main_thread}.detach();
+  }
+  return true;
+}
+#endif
