@@ -4,6 +4,8 @@ project(tosu_overlay)
 # Source files.
 #
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # tosu_overlay sources.
 set(CEFSIMPLE_SRCS
   simple_app.cc

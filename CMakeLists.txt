@@ -7,6 +7,8 @@
 # For VS2022 and Xcode 12+ support.
 cmake_minimum_required(VERSION 3.21)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Only generate Debug and Release configuration types.
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
@@ -15,7 +17,6 @@ project(cef)
 
 # Use folders in the resulting project files.
 set_property(GLOBAL PROPERTY OS_FOLDERS ON)
-
 
 #
 # CEF configuration.
