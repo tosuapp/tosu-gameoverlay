@@ -1,6 +1,4 @@
-# Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
-# reserved. Use of this source code is governed by a BSD-style license that
-# can be found in the LICENSE file.
+project(tosu_overlay)
 
 #
 # Source files.
@@ -12,20 +10,22 @@ set(CEFSIMPLE_SRCS
   simple_app.h
   simple_handler.cc
   simple_handler.h
-  )
+)
+
 set(CEFSIMPLE_SRCS_WINDOWS
   tosu_overlay_win.cc
   resource.h
   simple_handler_win.cc
   )
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)
-source_group(tosu_overlay FILES ${CEFSIMPLE_SRCS})
+source_group(${PROJECT_NAME} FILES ${CEFSIMPLE_SRCS})
 
 set(CEFSIMPLE_WIN_SRCS_WINDOWS
   win/tosu_overlay.rc
-  )
+)
+
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_WIN_SRCS)
-source_group(tosu_overlay\\\\win FILES ${CEFSIMPLE_WIN_SRCS})
+source_group(${PROJECT_NAME}\\\\win FILES ${CEFSIMPLE_WIN_SRCS})
 
 set(CEFSIMPLE_SRCS
   ${CEFSIMPLE_SRCS}
@@ -34,7 +34,7 @@ set(CEFSIMPLE_SRCS
 
 # tosu_overlay helper sources.
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_HELPER_SRCS)
-source_group(tosu_overlay FILES ${CEFSIMPLE_HELPER_SRCS})
+source_group(${PROJECT_NAME} FILES ${CEFSIMPLE_HELPER_SRCS})
 
 #
 # Shared configuration.

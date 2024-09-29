@@ -118,24 +118,6 @@ elseif(OS_LINUX)
   set(GS_OUTPATH "linux64/clang-format")
 endif()
 
-message(STATUS "Downloading clang-format from Google Storage...")
-execute_process(
-  COMMAND "${PYTHON_EXECUTABLE}"
-          "tools/buildtools/download_from_google_storage.py"
-          "--no_resume"
-          "--platform=${GS_PLATFORM}"
-          "--no_auth"
-          "--bucket" "chromium-clang-format"
-          "-s" "tools/buildtools/${GS_HASHPATH}"
-          "-o" "tools/buildtools/${GS_OUTPATH}"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  RESULT_VARIABLE EXECUTE_RV
-  )
-if(NOT EXECUTE_RV STREQUAL "0")
-  message(FATAL_ERROR "Execution failed with unexpected result: ${EXECUTE_RV}")
-endif()
-
-
 #
 # Target configuration.
 #
