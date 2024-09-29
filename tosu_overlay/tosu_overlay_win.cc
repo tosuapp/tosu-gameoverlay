@@ -5,7 +5,9 @@
 #include <tosu_overlay/simple_app.h>
 
 #include <MinHook.h>
+#include <winnt.h>
 
+#include <filesystem>
 #include <thread>
 
 // Uncomment this line to manually enable sandbox support.
@@ -15,52 +17,19 @@
 #pragma comment(lib, "cef_sandbox.lib")
 #endif
 
-#if DESKTOP
-// Entry point function for all processes.
-int APIENTRY wWinMain(HINSTANCE hInstance,
-                      HINSTANCE hPrevInstance,
-                      LPWSTR lpCmdLine,
-                      int nCmdShow) {
-  UNREFERENCED_PARAMETER(hPrevInstance);
-  UNREFERENCED_PARAMETER(lpCmdLine);
+namespace {
 
-  int exit_code;
-
-#if defined(ARCH_CPU_32_BITS)
-  // Run the main thread on 32-bit Windows using a fiber with the preferred 4MiB
-  // stack size. This function must be called at the top of the executable entry
-  // point function (`main()` or `wWinMain()`). It is used in combination with
-  // the initial stack size of 0.5MiB configured via the `/STACK:0x80000` linker
-  // flag on executable targets. This saves significant memory on threads (like
-  // those in the Windows thread pool, and others) whose stack size can only be
-  // controlled via the linker flag.
-  exit_code = CefRunWinMainWithPreferredStackSize(wWinMain, hInstance,
-                                                  lpCmdLine, nCmdShow);
-  if (exit_code >= 0) {
-    // The fiber has completed so return here.
-    return exit_code;
-  }
-#endif
-
-  void* sandbox_info = nullptr;
-
-#if defined(CEF_USE_SANDBOX)
-  // Manage the life span of the sandbox information object. This is necessary
-  // for sandbox support on Windows. See cef_sandbox_win.h for complete details.
-  CefScopedSandboxInfo scoped_sandbox;
-  sandbox_info = scoped_sandbox.sandbox_info();
-#endif
-
+void initialize_cef(HINSTANCE hInstance) {
   // Provide CEF with command-line arguments.
   CefMainArgs main_args(hInstance);
 
   // CEF applications have multiple sub-processes (render, GPU, etc) that share
   // the same executable. This function checks the command-line and, if this is
   // a sub-process, executes the appropriate logic.
-  exit_code = CefExecuteProcess(main_args, nullptr, sandbox_info);
+  auto exit_code = CefExecuteProcess(main_args, nullptr, nullptr);
   if (exit_code >= 0) {
     // The sub-process has completed so return here.
-    return exit_code;
+    return;
   }
 
   // Parse command-line arguments for use in this method.
@@ -94,8 +63,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   // Initialize the CEF browser process. May return false if initialization
   // fails or if early exit is desired (for example, due to process singleton
   // relaunch behavior).
-  if (!CefInitialize(main_args, settings, app.get(), sandbox_info)) {
-    return CefGetExitCode();
+  if (!CefInitialize(main_args, settings, app.get(), nullptr)) {
+    // CefGetExitCode();
+    return;
   }
 
   // Run the CEF message loop. This will block until CefQuitMessageLoop() is
@@ -104,20 +74,49 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 
   // Shut down CEF.
   CefShutdown();
+}
+
+void* o_swap_buffers;
+}  // namespace
+
+#if DESKTOP
+// Entry point function for all processes.
+int APIENTRY wWinMain(HINSTANCE hInstance,
+                      HINSTANCE hPrevInstance,
+                      LPWSTR lpCmdLine,
+                      int nCmdShow) {
+  UNREFERENCED_PARAMETER(hPrevInstance);
+  UNREFERENCED_PARAMETER(lpCmdLine);
+
+  int exit_code;
+
+#if defined(ARCH_CPU_32_BITS)
+  // Run the main thread on 32-bit Windows using a fiber with the preferred 4MiB
+  // stack size. This function must be called at the top of the executable entry
+  // point function (`main()` or `wWinMain()`). It is used in combination with
+  // the initial stack size of 0.5MiB configured via the `/STACK:0x80000` linker
+  // flag on executable targets. This saves significant memory on threads (like
+  // those in the Windows thread pool, and others) whose stack size can only be
+  // controlled via the linker flag.
+  exit_code = CefRunWinMainWithPreferredStackSize(wWinMain, hInstance,
+                                                  lpCmdLine, nCmdShow);
+  if (exit_code >= 0) {
+    // The fiber has completed so return here.
+    return exit_code;
+  }
+#endif
+
+  initialize_cef(hInstance);
 
   return 0;
 }
 #else
 
-namespace {
-void* o_swap_buffers;
-}
-
 bool __stdcall swap_buffers_hk(HDC hdc) {
   return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
 }
 
-void main_thread() {
+void main_thread(HINSTANCE hInstance) {
   AllocConsole();
   freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
 
@@ -127,11 +126,31 @@ void main_thread() {
                    reinterpret_cast<void*>(swap_buffers_hk), &o_swap_buffers);
 
   MH_EnableHook(MH_ALL_HOOKS);
+
+  std::thread{initialize_cef, hInstance}.detach();
 }
 
-int32_t __stdcall DllMain(uintptr_t, uint32_t reason, uintptr_t) {
-  if (reason == 1) {
-    std::thread{main_thread}.detach();
+int32_t __stdcall DllMain(HINSTANCE hInstance, uint32_t reason, uintptr_t) {
+  if (reason == DLL_PROCESS_ATTACH) {
+    wchar_t module_path[MAX_PATH];
+    if (GetModuleFileName(hInstance, module_path, sizeof(module_path)) == 0) {
+      printf("GetModuleFileName failed, error = %d\n",
+             static_cast<int32_t>(GetLastError()));
+      return true;
+    }
+
+    auto cef_path =
+        std::filesystem::path(module_path).parent_path() / "libcef.dll";
+    printf("%s\n", cef_path.string().c_str());
+
+    LoadLibraryEx(cef_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+    auto last_error = GetLastError();
+    if (last_error != 0) {
+      printf("%s\n", "Can't load libcef.dll");
+      return true;
+    }
+
+    std::thread{main_thread, hInstance}.detach();
   }
   return true;
 }

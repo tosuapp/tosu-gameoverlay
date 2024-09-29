@@ -12,13 +12,11 @@ set(CEFSIMPLE_SRCS
   simple_app.h
   simple_handler.cc
   simple_handler.h
-)
-
-set(CEFSIMPLE_SRCS_WINDOWS
   tosu_overlay_win.cc
   resource.h
   simple_handler_win.cc
-  )
+)
+
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)
 source_group(${PROJECT_NAME} FILES ${CEFSIMPLE_SRCS})
 
