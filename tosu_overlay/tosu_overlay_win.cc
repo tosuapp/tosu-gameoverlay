@@ -32,18 +32,14 @@ void initialize_cef(HINSTANCE hInstance) {
     return;
   }
 
-  // Parse command-line arguments for use in this method.
-  CefRefPtr<CefCommandLine> command_line = CefCommandLine::CreateCommandLine();
-  command_line->InitFromString(::GetCommandLineW());
-
-  // command_line->AppendArgument("remote-debugging-port=9222");
-  command_line->AppendSwitch("disable-gpu");
-  command_line->AppendSwitch("disable-gpu-compositing");
-
   // Specify CEF global settings here.
   CefSettings settings;
 
 #if !defined(DISABLE_ALLOY_BOOTSTRAP)
+  // Parse command-line arguments for use in this method.
+  CefRefPtr<CefCommandLine> command_line = CefCommandLine::CreateCommandLine();
+  command_line->InitFromString(::GetCommandLineW());
+
   // Use the CEF Chrome bootstrap unless "--disable-chrome-runtime" is specified
   // via the command-line. Otherwise, use the CEF Alloy bootstrap. The Alloy
   // bootstrap is deprecated and will be removed in ~M127. See
@@ -76,7 +72,9 @@ void initialize_cef(HINSTANCE hInstance) {
   CefShutdown();
 }
 
+#if !DESKTOP
 void* o_swap_buffers;
+#endif
 }  // namespace
 
 #if DESKTOP
@@ -88,8 +86,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   UNREFERENCED_PARAMETER(hPrevInstance);
   UNREFERENCED_PARAMETER(lpCmdLine);
 
-  int exit_code;
-
 #if defined(ARCH_CPU_32_BITS)
   // Run the main thread on 32-bit Windows using a fiber with the preferred 4MiB
   // stack size. This function must be called at the top of the executable entry
@@ -98,8 +94,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   // flag on executable targets. This saves significant memory on threads (like
   // those in the Windows thread pool, and others) whose stack size can only be
   // controlled via the linker flag.
-  exit_code = CefRunWinMainWithPreferredStackSize(wWinMain, hInstance,
-                                                  lpCmdLine, nCmdShow);
+  auto exit_code = CefRunWinMainWithPreferredStackSize(wWinMain, hInstance,
+                                                        lpCmdLine, nCmdShow);
   if (exit_code >= 0) {
     // The fiber has completed so return here.
     return exit_code;

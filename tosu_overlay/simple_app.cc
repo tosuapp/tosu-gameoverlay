@@ -169,3 +169,15 @@ CefRefPtr<CefClient> SimpleApp::GetDefaultClient() {
   // Called when a new browser window is created via the Chrome runtime UI.
   return SimpleHandler::GetInstance();
 }
+
+void SimpleApp::OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) {
+  command_line->AppendSwitch("disable-web-security");
+  command_line->AppendSwitch("enable-begin-frame-scheduling");
+  command_line->AppendSwitchWithValue("remote-allow-origins", "*");
+
+  command_line->AppendSwitch("disable-gpu");
+  command_line->AppendSwitch("disable-gpu-compositing");
+  command_line->AppendSwitchWithValue("disable-gpu-vsync", "gpu");
+
+  command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+}
