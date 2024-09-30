@@ -86,6 +86,8 @@ if(OS_WINDOWS)
   # Add the custom manifest files to the executable.
   if (DESKTOP)
     ADD_WINDOWS_MANIFEST("${CMAKE_CURRENT_SOURCE_DIR}/win" "${CEF_TARGET}" "exe")
+  else()
+    ADD_WINDOWS_MANIFEST("${CMAKE_CURRENT_SOURCE_DIR}/win" "${CEF_TARGET}" "dll")
   endif()
 
   # Copy binary and resource files to the target output directory.

@@ -19,6 +19,17 @@
 
 namespace {
 
+std::wstring get_module_path(HINSTANCE hInstance) {
+  wchar_t module_path[MAX_PATH];
+  if (GetModuleFileName(hInstance, module_path, sizeof(module_path)) == 0) {
+    printf("GetModuleFileName failed, error = %d\n",
+           static_cast<int32_t>(GetLastError()));
+    exit(1);
+  }
+
+  return module_path;
+}
+
 void initialize_cef(HINSTANCE hInstance) {
   // Provide CEF with command-line arguments.
   CefMainArgs main_args(hInstance);
@@ -55,6 +66,12 @@ void initialize_cef(HINSTANCE hInstance) {
   // It will create the first browser instance in OnContextInitialized() after
   // CEF has initialized.
   CefRefPtr<TosuOverlay> app(new TosuOverlay);
+
+  std::wstring module_path = get_module_path(hInstance);
+  auto exe_path =
+      std::filesystem::path(module_path).parent_path() / "tosu_overlay.exe";
+
+  CefString(&settings.browser_subprocess_path) = exe_path;
 
   // Initialize the CEF browser process. May return false if initialization
   // fails or if early exit is desired (for example, due to process singleton
@@ -116,12 +133,7 @@ void main_thread(HINSTANCE hInstance) {
   AllocConsole();
   freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
 
-  wchar_t module_path[MAX_PATH];
-  if (GetModuleFileName(hInstance, module_path, sizeof(module_path)) == 0) {
-    printf("GetModuleFileName failed, error = %d\n",
-           static_cast<int32_t>(GetLastError()));
-    return;
-  }
+  std::wstring module_path = get_module_path(hInstance);
 
   auto cef_path =
       std::filesystem::path(module_path).parent_path() / "libcef.dll";
