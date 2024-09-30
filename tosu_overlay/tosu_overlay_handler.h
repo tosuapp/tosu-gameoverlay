@@ -12,6 +12,7 @@
 class SimpleHandler : public CefClient,
                       public CefDisplayHandler,
                       public CefLifeSpanHandler,
+                      // public CefRenderHandler,
                       public CefLoadHandler {
  public:
   explicit SimpleHandler(bool is_alloy_style);
@@ -47,6 +48,15 @@ class SimpleHandler : public CefClient,
   void CloseAllBrowsers(bool force_close);
 
   bool IsClosing() const { return is_closing_; }
+
+  // void GetViewRect(CefRefPtr< CefBrowser > browser, CefRect &rect) override;
+
+  // void OnPaint(CefRefPtr<CefBrowser> browser,
+  //                     PaintElementType type,
+  //                     const RectList& dirty_rects,
+  //                     const void* buffer,
+  //                     int width,
+  //                     int height) override;
 
  private:
   // Platform-specific implementation.

@@ -4,11 +4,15 @@
 #include <include/cef_sandbox_win.h>
 #include <tosu_overlay/tosu_overlay_app.h>
 
+#include <GL/glew.h>
 #include <MinHook.h>
+#include <wingdi.h>
 #include <winnt.h>
 
 #include <filesystem>
 #include <thread>
+
+#pragma comment(lib, "OpenGL32.lib")
 
 // Uncomment this line to manually enable sandbox support.
 // #define CEF_USE_SANDBOX 1
@@ -126,6 +130,23 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 #else
 
 bool __stdcall swap_buffers_hk(HDC hdc) {
+  auto orig_context = wglGetCurrentContext();
+  auto new_context = wglCreateContext(hdc);
+  wglMakeCurrent(hdc, new_context);
+
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glBegin(GL_TRIANGLES);
+  glColor3f(1.0f, 0.0f, 0.0f);
+  glVertex2f(-0.5f, -0.5f);
+  glColor3f(0.0f, 1.0f, 0.0f);
+  glVertex2f(0.5f, -0.5f);
+  glColor3f(0.0f, 0.0f, 1.0f);
+  glVertex2f(0.0f, 0.5f);
+  glEnd();
+
+  wglMakeCurrent(hdc, orig_context);
+
   return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
 }
 

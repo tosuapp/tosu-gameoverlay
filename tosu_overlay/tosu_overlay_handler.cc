@@ -172,6 +172,26 @@ void SimpleHandler::CloseAllBrowsers(bool force_close) {
   }
 }
 
+// void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
+//                             PaintElementType type,
+//                             const RectList& dirty_rects,
+//                             const void* buffer,
+//                             int width,
+//                             int height) {
+//   CEF_REQUIRE_UI_THREAD();
+
+//   return;
+// }
+
+// void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
+//   CEF_REQUIRE_UI_THREAD()
+
+//   if (auto browser_view = CefBrowserView::GetForBrowser(browser)) { 
+//     CefRect browser_rect = browser_view->GetBounds();
+//     rect = CefRect(0, 0, browser_rect.width, browser_rect.height);
+//   }
+// }
+
 #if !defined(OS_MAC)
 void SimpleHandler::PlatformShowWindow(CefRefPtr<CefBrowser> browser) {
   NOTIMPLEMENTED();
