@@ -120,6 +120,24 @@ void main_thread(HINSTANCE hInstance) {
   AllocConsole();
   freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
 
+  wchar_t module_path[MAX_PATH];
+  if (GetModuleFileName(hInstance, module_path, sizeof(module_path)) == 0) {
+    printf("GetModuleFileName failed, error = %d\n",
+           static_cast<int32_t>(GetLastError()));
+    return;
+  }
+
+  auto cef_path =
+      std::filesystem::path(module_path).parent_path() / "libcef.dll";
+  printf("%s\n", cef_path.string().c_str());
+
+  LoadLibraryEx(cef_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+  auto last_error = GetLastError();
+  if (last_error != 0) {
+    printf("%s\n", "Can't load libcef.dll");
+    return;
+  }
+
   MH_Initialize();
 
   MH_CreateHookApi(L"opengl32.dll", "wglSwapBuffers",
@@ -132,24 +150,6 @@ void main_thread(HINSTANCE hInstance) {
 
 int32_t __stdcall DllMain(HINSTANCE hInstance, uint32_t reason, uintptr_t) {
   if (reason == DLL_PROCESS_ATTACH) {
-    wchar_t module_path[MAX_PATH];
-    if (GetModuleFileName(hInstance, module_path, sizeof(module_path)) == 0) {
-      printf("GetModuleFileName failed, error = %d\n",
-             static_cast<int32_t>(GetLastError()));
-      return true;
-    }
-
-    auto cef_path =
-        std::filesystem::path(module_path).parent_path() / "libcef.dll";
-    printf("%s\n", cef_path.string().c_str());
-
-    LoadLibraryEx(cef_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
-    auto last_error = GetLastError();
-    if (last_error != 0) {
-      printf("%s\n", "Can't load libcef.dll");
-      return true;
-    }
-
     std::thread{main_thread, hInstance}.detach();
   }
   return true;
