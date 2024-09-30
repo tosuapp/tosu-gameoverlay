@@ -112,7 +112,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   // those in the Windows thread pool, and others) whose stack size can only be
   // controlled via the linker flag.
   auto exit_code = CefRunWinMainWithPreferredStackSize(wWinMain, hInstance,
-                                                        lpCmdLine, nCmdShow);
+                                                       lpCmdLine, nCmdShow);
   if (exit_code >= 0) {
     // The fiber has completed so return here.
     return exit_code;
