@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "tosu_overlay/simple_app.h"
+#include "tosu_overlay/tosu_overlay_app.h"
 
 #include <string>
 
@@ -11,7 +11,7 @@
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_helpers.h"
-#include "tosu_overlay/simple_handler.h"
+#include "tosu_overlay/tosu_overlay_handler.h"
 
 namespace {
 
@@ -105,9 +105,9 @@ class SimpleBrowserViewDelegate : public CefBrowserViewDelegate {
 
 }  // namespace
 
-SimpleApp::SimpleApp() = default;
+TosuOverlay::TosuOverlay() = default;
 
-void SimpleApp::OnContextInitialized() {
+void TosuOverlay::OnContextInitialized() {
   CEF_REQUIRE_UI_THREAD();
 
   CefRefPtr<CefCommandLine> command_line =
@@ -146,7 +146,7 @@ void SimpleApp::OnContextInitialized() {
   // that instead of the default URL.
   url = command_line->GetSwitchValue("url");
   if (url.empty()) {
-    url = "https://tosu.app";
+    url = "chrome://about";
   }
 
   CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
@@ -165,12 +165,12 @@ void SimpleApp::OnContextInitialized() {
   //                                   browser_settings, nullptr, nullptr);
 }
 
-CefRefPtr<CefClient> SimpleApp::GetDefaultClient() {
+CefRefPtr<CefClient> TosuOverlay::GetDefaultClient() {
   // Called when a new browser window is created via the Chrome runtime UI.
   return SimpleHandler::GetInstance();
 }
 
-void SimpleApp::OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) {
+void TosuOverlay::OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) {
   command_line->AppendSwitch("disable-web-security");
   command_line->AppendSwitch("enable-begin-frame-scheduling");
   command_line->AppendSwitchWithValue("remote-allow-origins", "*");
@@ -180,4 +180,5 @@ void SimpleApp::OnBeforeCommandLineProcessing(const CefString &process_type, Cef
   command_line->AppendSwitchWithValue("disable-gpu-vsync", "gpu");
 
   command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+  command_line->AppendSwitch("ignore-certificate-errors");
 }

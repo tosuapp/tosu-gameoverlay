@@ -2,7 +2,7 @@
 
 #include <include/cef_command_line.h>
 #include <include/cef_sandbox_win.h>
-#include <tosu_overlay/simple_app.h>
+#include <tosu_overlay/tosu_overlay_app.h>
 
 #include <MinHook.h>
 #include <winnt.h>
@@ -51,10 +51,10 @@ void initialize_cef(HINSTANCE hInstance) {
   settings.no_sandbox = true;
 #endif
 
-  // SimpleApp implements application-level callbacks for the browser process.
+  // TosuOverlay implements application-level callbacks for the browser process.
   // It will create the first browser instance in OnContextInitialized() after
   // CEF has initialized.
-  CefRefPtr<SimpleApp> app(new SimpleApp);
+  CefRefPtr<TosuOverlay> app(new TosuOverlay);
 
   // Initialize the CEF browser process. May return false if initialization
   // fails or if early exit is desired (for example, due to process singleton

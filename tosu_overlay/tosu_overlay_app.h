@@ -8,9 +8,9 @@
 #include "include/cef_app.h"
 
 // Implement application-level callbacks for the browser process.
-class SimpleApp : public CefApp, public CefBrowserProcessHandler {
+class TosuOverlay : public CefApp, public CefBrowserProcessHandler {
  public:
-  SimpleApp();
+  TosuOverlay();
 
   // CefApp methods:
   CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
@@ -25,7 +25,7 @@ class SimpleApp : public CefApp, public CefBrowserProcessHandler {
 
  private:
   // Include the default reference counting implementation.
-  IMPLEMENT_REFCOUNTING(SimpleApp);
+  IMPLEMENT_REFCOUNTING(TosuOverlay);
 };
 
 #endif  // CEF_TESTS_CEFSIMPLE_SIMPLE_APP_H_

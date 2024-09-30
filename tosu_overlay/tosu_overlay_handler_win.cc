@@ -2,7 +2,7 @@
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
-#include "tosu_overlay/simple_handler.h"
+#include "tosu_overlay/tosu_overlay_handler.h"
 
 #include <windows.h>
 

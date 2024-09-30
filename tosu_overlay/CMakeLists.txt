@@ -8,13 +8,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # tosu_overlay sources.
 set(CEFSIMPLE_SRCS
-  simple_app.cc
-  simple_app.h
-  simple_handler.cc
-  simple_handler.h
+  tosu_overlay_app.cc
+  tosu_overlay_app.h
+  tosu_overlay_handler.cc
+  tosu_overlay_handler.h
   tosu_overlay_win.cc
   resource.h
-  simple_handler_win.cc
+  tosu_overlay_handler_win.cc
 )
 
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)
