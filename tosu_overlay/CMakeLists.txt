@@ -13,6 +13,8 @@ set(CEFSIMPLE_SRCS
   tosu_overlay_handler.cc
   tosu_overlay_handler.h
   tosu_overlay_win.cc
+  glad.cc
+  canvas.cc
   resource.h
   tosu_overlay_handler_win.cc
 )
@@ -23,7 +25,6 @@ source_group(${PROJECT_NAME} FILES ${CEFSIMPLE_SRCS})
 set(CEFSIMPLE_WIN_SRCS_WINDOWS
   win/tosu_overlay.rc
 )
-
 
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_WIN_SRCS)
 source_group(${PROJECT_NAME}\\\\win FILES ${CEFSIMPLE_WIN_SRCS})
@@ -75,7 +76,7 @@ if(OS_WINDOWS)
 
   add_dependencies(${CEF_TARGET} libcef_dll_wrapper)
   SET_EXECUTABLE_TARGET_PROPERTIES(${CEF_TARGET})
-  target_link_libraries(${CEF_TARGET} libcef_lib libcef_dll_wrapper minhook glew32 glew32s delayimp ${CEF_STANDARD_LIBS})
+  target_link_libraries(${CEF_TARGET} libcef_lib libcef_dll_wrapper minhook opengl32 delayimp ${CEF_STANDARD_LIBS})
 
   if(USE_SANDBOX)
     # Logical target used to link the cef_sandbox library.

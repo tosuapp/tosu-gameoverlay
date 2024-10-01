@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 
+#include "canvas.h"
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
@@ -172,25 +173,22 @@ void SimpleHandler::CloseAllBrowsers(bool force_close) {
   }
 }
 
-// void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
-//                             PaintElementType type,
-//                             const RectList& dirty_rects,
-//                             const void* buffer,
-//                             int width,
-//                             int height) {
-//   CEF_REQUIRE_UI_THREAD();
+void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
+                            PaintElementType type,
+                            const RectList& dirty_rects,
+                            const void* buffer,
+                            int width,
+                            int height) {
+  CEF_REQUIRE_UI_THREAD();
 
-//   return;
-// }
+  canvas::set_data(buffer);
+}
 
-// void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
-//   CEF_REQUIRE_UI_THREAD()
+void SimpleHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
+  CEF_REQUIRE_UI_THREAD()
 
-//   if (auto browser_view = CefBrowserView::GetForBrowser(browser)) { 
-//     CefRect browser_rect = browser_view->GetBounds();
-//     rect = CefRect(0, 0, browser_rect.width, browser_rect.height);
-//   }
-// }
+  rect = CefRect(0, 0, 1366, 768);
+}
 
 #if !defined(OS_MAC)
 void SimpleHandler::PlatformShowWindow(CefRefPtr<CefBrowser> browser) {

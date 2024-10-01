@@ -8,6 +8,7 @@
 
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
+#include "include/internal/cef_types_runtime.h"
 #include "include/views/cef_browser_view.h"
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_helpers.h"
@@ -113,24 +114,13 @@ void TosuOverlay::OnContextInitialized() {
   CefRefPtr<CefCommandLine> command_line =
       CefCommandLine::GetGlobalCommandLine();
 
-#if !defined(DISABLE_ALLOY_BOOTSTRAP)
-  const bool enable_chrome_runtime =
-      !command_line->HasSwitch("disable-chrome-runtime");
-#endif
+  // #if !defined(DISABLE_ALLOY_BOOTSTRAP)
+  //   const bool enable_chrome_runtime =
+  //       !command_line->HasSwitch("disable-chrome-runtime");
+  // #endif
 
-  // Check if Alloy style will be used. Alloy style is always used with the
-  // Alloy runtime bootstrap and optional with the Chrome runtime bootstrap.
   bool use_alloy_style = true;
   cef_runtime_style_t runtime_style = CEF_RUNTIME_STYLE_DEFAULT;
-#if !defined(DISABLE_ALLOY_BOOTSTRAP)
-  if (enable_chrome_runtime)
-#endif
-  {
-    use_alloy_style = command_line->HasSwitch("use-alloy-style");
-    if (use_alloy_style) {
-      runtime_style = CEF_RUNTIME_STYLE_ALLOY;
-    }
-  }
 
   // SimpleHandler implements browser-level callbacks.
   CefRefPtr<SimpleHandler> handler(new SimpleHandler(use_alloy_style));
@@ -146,16 +136,23 @@ void TosuOverlay::OnContextInitialized() {
   // that instead of the default URL.
   url = command_line->GetSwitchValue("url");
   if (url.empty()) {
-    url = "chrome://about";
+    url = "http://127.0.0.1:24050/tosu-debug by cyperdark/";
   }
 
   CefRefPtr<CefBrowserView> browser_view = CefBrowserView::CreateBrowserView(
-        handler, url, browser_settings, nullptr, nullptr,
-        new SimpleBrowserViewDelegate(runtime_style));
-  CefWindow::CreateTopLevelWindow(new SimpleWindowDelegate(
-        browser_view, runtime_style, CEF_SHOW_STATE_NORMAL));
+      handler, url, browser_settings, nullptr, nullptr,
+      new SimpleBrowserViewDelegate(runtime_style));
 
-  // CefBrowserHost::CreateBrowserSync(window_info, handler, "https://google.com",
+  CefWindowInfo window_info;
+
+  window_info.SetAsWindowless(GetDesktopWindow());
+  window_info.windowless_rendering_enabled = TRUE;
+  window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+  CefBrowserHost::CreateBrowserSync(window_info, handler, url, browser_settings,
+                                    nullptr, nullptr);
+
+  // CefBrowserHost::CreateBrowserSync(window_info, handler,
+  // "https://google.com",
   //                                   browser_settings, nullptr, nullptr);
 
   // CefBrowserHost::CreateBrowserSync(window_info, handler, "https://ya.com",
@@ -170,7 +167,9 @@ CefRefPtr<CefClient> TosuOverlay::GetDefaultClient() {
   return SimpleHandler::GetInstance();
 }
 
-void TosuOverlay::OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) {
+void TosuOverlay::OnBeforeCommandLineProcessing(
+    const CefString& process_type,
+    CefRefPtr<CefCommandLine> command_line) {
   command_line->AppendSwitch("disable-web-security");
   command_line->AppendSwitch("enable-begin-frame-scheduling");
   command_line->AppendSwitchWithValue("remote-allow-origins", "*");

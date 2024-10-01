@@ -12,7 +12,7 @@
 class SimpleHandler : public CefClient,
                       public CefDisplayHandler,
                       public CefLifeSpanHandler,
-                      // public CefRenderHandler,
+                      public CefRenderHandler,
                       public CefLoadHandler {
  public:
   explicit SimpleHandler(bool is_alloy_style);
@@ -20,6 +20,8 @@ class SimpleHandler : public CefClient,
 
   // Provide access to the single global instance of this object.
   static SimpleHandler* GetInstance();
+
+  CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
 
   // CefClient methods:
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
@@ -49,14 +51,14 @@ class SimpleHandler : public CefClient,
 
   bool IsClosing() const { return is_closing_; }
 
-  // void GetViewRect(CefRefPtr< CefBrowser > browser, CefRect &rect) override;
+  void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
 
-  // void OnPaint(CefRefPtr<CefBrowser> browser,
-  //                     PaintElementType type,
-  //                     const RectList& dirty_rects,
-  //                     const void* buffer,
-  //                     int width,
-  //                     int height) override;
+  void OnPaint(CefRefPtr<CefBrowser> browser,
+               PaintElementType type,
+               const RectList& dirty_rects,
+               const void* buffer,
+               int width,
+               int height) override;
 
  private:
   // Platform-specific implementation.

@@ -2,17 +2,16 @@
 
 #include <include/cef_command_line.h>
 #include <include/cef_sandbox_win.h>
+#include <tosu_overlay/canvas.h>
 #include <tosu_overlay/tosu_overlay_app.h>
 
-#include <GL/glew.h>
 #include <MinHook.h>
-#include <wingdi.h>
-#include <winnt.h>
+
+#include <glad/glad.h>
 
 #include <filesystem>
+#include <mutex>
 #include <thread>
-
-#pragma comment(lib, "OpenGL32.lib")
 
 // Uncomment this line to manually enable sandbox support.
 // #define CEF_USE_SANDBOX 1
@@ -62,6 +61,8 @@ void initialize_cef(HINSTANCE hInstance) {
   settings.chrome_runtime = !command_line->HasSwitch("disable-chrome-runtime");
 #endif
 
+  settings.windowless_rendering_enabled = true;
+
 #if !defined(CEF_USE_SANDBOX)
   settings.no_sandbox = true;
 #endif
@@ -94,7 +95,10 @@ void initialize_cef(HINSTANCE hInstance) {
 }
 
 #if !DESKTOP
+
 void* o_swap_buffers;
+std::once_flag glad_init_flag;
+
 #endif
 }  // namespace
 
@@ -130,14 +134,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 #else
 
 bool __stdcall swap_buffers_hk(HDC hdc) {
-  glBegin(GL_TRIANGLES);
-  glColor3f(1.0f, 0.0f, 0.0f);
-  glVertex2f(-0.5f, -0.5f);
-  glColor3f(0.0f, 1.0f, 0.0f);
-  glVertex2f(0.5f, -0.5f);
-  glColor3f(0.0f, 0.0f, 1.0f);
-  glVertex2f(0.0f, 0.5f);
-  glEnd();
+  std::call_once(glad_init_flag,
+                 []() { printf("gl loading result: %d\n", gladLoadGL()); });
+
+  canvas::draw(hdc);
 
   return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
 }
