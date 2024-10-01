@@ -37,13 +37,17 @@ void try_update_texture() {
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture2d);
   glBindTexture(GL_TEXTURE_2D, texture);
 
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_RGBA,
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA,
                   GL_UNSIGNED_BYTE, render_data);
 
   glBindTexture(GL_TEXTURE_2D, texture2d);
 }
 
 }  // namespace
+
+POINT canvas::get_render_size() {
+  return render_size;
+}
 
 void canvas::set_data(const void* data) {
   std::lock_guard<std::mutex> lock(mutex);
@@ -59,8 +63,6 @@ void canvas::set_data(const void* data) {
 
 void canvas::create(int32_t width, int32_t height) {
   std::lock_guard<std::mutex> lock(mutex);
-
-  printf("%d %d\n", width, height);
 
   render_size.x = width;
   render_size.y = height;
@@ -84,8 +86,8 @@ void canvas::create(int32_t width, int32_t height) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, render_size.x, render_size.y, 0,
-               GL_RGBA, GL_UNSIGNED_BYTE, render_data);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, render_size.x, render_size.y, 0,
+               GL_BGRA, GL_UNSIGNED_BYTE, render_data);
   glBindTexture(GL_TEXTURE_2D, texture2d);
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);

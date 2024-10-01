@@ -15,6 +15,7 @@
 #include "include/views/cef_window.h"
 #include "include/wrapper/cef_closure_task.h"
 #include "include/wrapper/cef_helpers.h"
+#include "tosu_overlay/canvas.h"
 
 namespace {
 
@@ -179,15 +180,20 @@ void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
                             const void* buffer,
                             int width,
                             int height) {
-  CEF_REQUIRE_UI_THREAD();
+  auto render_size = canvas::get_render_size();
 
-  canvas::set_data(buffer);
+  if (render_size.x == width && render_size.y == height) {
+    canvas::set_data(buffer);
+  }
+  else {
+    browser->GetHost()->WasResized();
+  }
 }
 
 void SimpleHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
-  CEF_REQUIRE_UI_THREAD()
+  auto render_size = canvas::get_render_size();
 
-  rect = CefRect(0, 0, 1366, 768);
+  rect = CefRect(0, 0, render_size.x, render_size.y);
 }
 
 #if !defined(OS_MAC)
