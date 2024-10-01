@@ -96,9 +96,6 @@ void initialize_cef(HINSTANCE hInstance) {
 #if !DESKTOP
 void* o_swap_buffers;
 #endif
-
-HGLRC new_context;
-
 }  // namespace
 
 #if DESKTOP
@@ -133,13 +130,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 #else
 
 bool __stdcall swap_buffers_hk(HDC hdc) {
-  if (new_context == nullptr) {
-    new_context = wglCreateContext(hdc);
-  }
-
-  auto orig_context = wglGetCurrentContext();
-  wglMakeCurrent(hdc, new_context);
-
   glBegin(GL_TRIANGLES);
   glColor3f(1.0f, 0.0f, 0.0f);
   glVertex2f(-0.5f, -0.5f);
@@ -148,8 +138,6 @@ bool __stdcall swap_buffers_hk(HDC hdc) {
   glColor3f(0.0f, 0.0f, 1.0f);
   glVertex2f(0.0f, 0.5f);
   glEnd();
-
-  wglMakeCurrent(hdc, orig_context);
 
   return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
 }
