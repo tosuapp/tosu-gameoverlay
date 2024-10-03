@@ -107,6 +107,7 @@ void canvas::create(int32_t width, int32_t height) {
       "void main(void)"
       "{"
       "	gl_FragColor = texture2D(tex_sampler,gl_TexCoord[0].st);"
+      " if (gl_FragColor.a < 0.1) discard;"
       "}";
 
   glShaderSource(v_shader, 1, &v_shader_src, 0);
