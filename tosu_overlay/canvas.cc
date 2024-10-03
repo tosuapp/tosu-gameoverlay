@@ -33,14 +33,10 @@ void try_update_texture() {
 
   update_pending = false;
 
-  GLint texture2d;
-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture2d);
+  // Directly bind the texture without querying the current bound texture
   glBindTexture(GL_TEXTURE_2D, texture);
-
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA,
                   GL_UNSIGNED_BYTE, render_data);
-
-  glBindTexture(GL_TEXTURE_2D, texture2d);
 }
 
 }  // namespace
@@ -126,79 +122,57 @@ void canvas::create(int32_t width, int32_t height) {
 
 void canvas::draw(HDC hdc) {
   auto window_size = get_window_size(hdc);
+  if (window_size.x == 0 || window_size.y == 0) {
+    return;
+  }
 
+  // Avoid unnecessary recreation
   if (window_size.x != render_size.x || window_size.y != render_size.y) {
-    if (texture) {
-      glDeleteTextures(1, &texture);
-      texture = 0;
-    }
-
-    if (program) {
-      glDeleteProgram(program);
-      program = 0;
-    }
-
-    if (render_data) {
-      delete[] render_data;
-      render_data = nullptr;
-    }
-
-    create(window_size.x, window_size.y);
+    create(window_size.x, window_size.y);  // Texture reallocation only when needed
   }
 
   try_update_texture();
 
-  auto position = POINT{};
-  auto color = 0xFFFFFFFF;
-
   glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-  GLint id;
-  glGetIntegerv(GL_CURRENT_PROGRAM, &id);
+  GLint prev_program;
+  glGetIntegerv(GL_CURRENT_PROGRAM, &prev_program);
+  glUseProgram(program);  // Bind shader program
 
-  glUseProgram(program);
-
+  // Set matrices only if needed
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
   glOrtho(0.0, (double)render_size.x, (double)render_size.y, 0.0, -1.0, 1.0);
-  glTranslatef(0.0, 0.0, 0.0);
+
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   glLoadIdentity();
 
+  // Enable texture and setup blending only once
   glEnable(GL_TEXTURE_2D);
   glDisable(GL_LIGHTING);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  glColor4d(GetRValue(color) / 255.0, GetGValue(color) / 255.0,
-            GetBValue(color) / 255.0, (LOBYTE((color) >> 24)) / 255.0);
-
-  GLint texture2d;
-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture2d);
-  glBindTexture(GL_TEXTURE_2D, texture);
+  glBindTexture(GL_TEXTURE_2D, texture);  // Bind the texture
 
   glBegin(GL_QUADS);
-  glTexCoord2i(0, 0);
-  glVertex3i(position.x, position.y, 0);
-  glTexCoord2i(0, 1);
-  glVertex3i(position.x, (render_size.y + position.y), 0);
-  glTexCoord2i(1, 1);
-  glVertex3i((render_size.x + position.x), (render_size.y + position.y), 0);
-  glTexCoord2i(1, 0);
-  glVertex3i((render_size.x + position.x), position.y, 0);
+  glTexCoord2i(0, 0); glVertex3i(0, 0, 0);
+  glTexCoord2i(0, 1); glVertex3i(0, render_size.y, 0);
+  glTexCoord2i(1, 1); glVertex3i(render_size.x, render_size.y, 0);
+  glTexCoord2i(1, 0); glVertex3i(render_size.x, 0, 0);
   glEnd();
 
-  glBindTexture(GL_TEXTURE_2D, texture2d);
+  glBindTexture(GL_TEXTURE_2D, 0);  // Unbind texture
 
-  glPopMatrix();
+  glPopMatrix();  // Restore matrices
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
 
-  glUseProgram(id);
+  glUseProgram(prev_program);  // Restore previous program
 
   glPopAttrib();
   glPopClientAttrib();

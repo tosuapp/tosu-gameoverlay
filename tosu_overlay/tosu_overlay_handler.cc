@@ -193,6 +193,11 @@ void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
 void SimpleHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
   auto render_size = canvas::get_render_size();
 
+  if (render_size.x == 0 || render_size.y == 0) {
+    rect.Set(0, 0, 500, 200);
+    return;
+  }
+
   rect = CefRect(0, 0, render_size.x, render_size.y);
 }
 
