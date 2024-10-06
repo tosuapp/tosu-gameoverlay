@@ -8,6 +8,7 @@
 #include <MinHook.h>
 
 #include <glad/glad.h>
+#include <wingdi.h>
 
 #include <filesystem>
 #include <mutex>
@@ -99,6 +100,9 @@ void initialize_cef(HINSTANCE hInstance) {
 void* o_swap_buffers;
 std::once_flag glad_init_flag;
 
+HGLRC gl_context;
+bool gl_context_inited = false;
+
 #endif
 }  // namespace
 
@@ -137,7 +141,18 @@ bool __stdcall swap_buffers_hk(HDC hdc) {
   std::call_once(glad_init_flag,
                  []() { printf("gl loading result: %d\n", gladLoadGL()); });
 
+  if (!gl_context_inited) {
+    gl_context = wglCreateContext(hdc);
+    gl_context_inited = true;
+  }
+
+  auto current_context = wglGetCurrentContext();
+
+  wglMakeCurrent(hdc, gl_context);
+
   canvas::draw(hdc);
+
+  wglMakeCurrent(hdc, current_context);
 
   return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
 }

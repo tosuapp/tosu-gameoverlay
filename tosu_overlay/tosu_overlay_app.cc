@@ -84,10 +84,10 @@ void TosuOverlay::OnBeforeCommandLineProcessing(
 
   command_line->AppendSwitch("disable-gpu");
   command_line->AppendSwitch("disable-gpu-compositing");
-  command_line->AppendSwitch("enable-begin-frame-scheduling");
 
   command_line->AppendSwitch("disable-web-security");
+  command_line->AppendSwitch("ignore-certificate-errors");
+
   command_line->AppendSwitchWithValue("remote-allow-origins", "*");
   command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
-  command_line->AppendSwitch("ignore-certificate-errors");
 }

@@ -133,22 +133,20 @@ void canvas::draw(HDC hdc) {
 
   try_update_texture();
 
-  glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS);
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-
   GLint prev_program;
   glGetIntegerv(GL_CURRENT_PROGRAM, &prev_program);
   glUseProgram(program);  // Bind shader program
 
-  // Set matrices only if needed
+  glViewport(0, 0, (double)render_size.x, (double)render_size.y);
+
   glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
   glLoadIdentity();
   glOrtho(0.0, (double)render_size.x, (double)render_size.y, 0.0, -1.0, 1.0);
 
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   glLoadIdentity();
+  glDisable(GL_DEPTH_TEST);
 
   // Enable texture and setup blending only once
   glEnable(GL_TEXTURE_2D);
@@ -160,20 +158,13 @@ void canvas::draw(HDC hdc) {
 
   glBegin(GL_QUADS);
   glTexCoord2i(0, 0); glVertex3i(0, 0, 0);
-  glTexCoord2i(0, 1); glVertex3i(0, render_size.y, 0);
+  glTexCoord2i(0, 1); glVertex3i(0, 
+  render_size.y, 0);
   glTexCoord2i(1, 1); glVertex3i(render_size.x, render_size.y, 0);
   glTexCoord2i(1, 0); glVertex3i(render_size.x, 0, 0);
   glEnd();
 
-  glBindTexture(GL_TEXTURE_2D, 0);  // Unbind texture
-
-  glPopMatrix();  // Restore matrices
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
+  glBindTexture(GL_TEXTURE_2D, 0);
 
   glUseProgram(prev_program);  // Restore previous program
-
-  glPopAttrib();
-  glPopClientAttrib();
 }
