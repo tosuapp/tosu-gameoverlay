@@ -6,24 +6,24 @@
 class ConfigManager {
 private:
     static ConfigManager* instance;
-    nlohmann::json jsonData;
+    nlohmann::json json_data;
     std::string config_path;
 
     ConfigManager(std::string configFilePath);
 
-    void writeDefaultConfig(const std::string& filePath);
+    void write_default_config(const std::string& filePath);
 
 public:
 
     ConfigManager(const ConfigManager&) = delete;
     void operator=(const ConfigManager&) = delete;
 
-    static ConfigManager* getInstance();
-    static ConfigManager* getInstance(std::string config_path);
+    static ConfigManager* get_instance();
+    static ConfigManager* get_instance(std::string config_path);
 
-    const nlohmann::json& getJsonData() const;
+    const nlohmann::json& get_json_data() const;
 
-    void updateJsonData(const std::string& key, const nlohmann::json& value);
+    void update_json_data(const std::string& key, const nlohmann::json& value);
 
-    void saveConfig(const std::string& filePath);
+    void save_config(const std::string& filePath);
 };

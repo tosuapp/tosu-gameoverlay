@@ -144,7 +144,7 @@ void main_thread(HINSTANCE hInstance) {
   auto parent_path = std::filesystem::path(module_path).parent_path();
   auto config_path = parent_path / "config.json";
 
-  ConfigManager::getInstance(config_path.string());
+  ConfigManager::get_instance(config_path.string());
 
   auto cef_path = parent_path / "libcef.dll";
 

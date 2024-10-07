@@ -4,6 +4,7 @@
 
 #include "tosu_overlay/tosu_overlay_app.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <filesystem>
@@ -40,10 +41,10 @@ void TosuOverlay::OnContextInitialized() {
   // Specify CEF browser settings here.
   CefBrowserSettings browser_settings;
 
-  ConfigManager* config_manager = ConfigManager::getInstance();
-  auto json_data = config_manager->getJsonData();
+  ConfigManager* config_manager = ConfigManager::get_instance();
+  auto json_data = config_manager->get_json_data();
 
-  browser_settings.windowless_frame_rate = tools::minmax(static_cast<uint32_t>(json_data["cef_fps"]), 10, 90);
+  browser_settings.windowless_frame_rate = std::clamp<uint32_t>(static_cast<uint32_t>(json_data["cef_fps"]), 10, 120);
 
   std::string url;
 
@@ -99,8 +100,8 @@ void TosuOverlay::OnBeforeCommandLineProcessing(
 
   command_line->AppendSwitchWithValue("remote-allow-origins", "*");
 
-  ConfigManager* config_manager = ConfigManager::getInstance();
-  auto json_data = config_manager->getJsonData();
+  ConfigManager* config_manager = ConfigManager::get_instance();
+  auto json_data = config_manager->get_json_data();
   if (static_cast<bool>(json_data["cef_debugging_enabled"])) {
     command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
   }
