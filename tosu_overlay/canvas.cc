@@ -8,6 +8,9 @@ namespace {
 GLuint texture = 0;
 GLuint program = 0;
 
+GLuint pboIds[2];  // Double-buffered PBOs
+int currentPBO = 0; // To track the active PBO
+
 uint8_t* render_data;
 POINT render_size;
 
@@ -24,6 +27,17 @@ POINT get_window_size(HDC hdc) {
   return {rect.right - rect.left, rect.bottom - rect.top};
 }
 
+void create_pbos() {
+    glGenBuffers(2, pboIds);  // Create two PBOs
+
+    for (int i = 0; i < 2; ++i) {
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[i]);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, render_size.x * render_size.y * 4, nullptr, GL_STREAM_DRAW);
+    }
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);  // Unbind PBO
+}
+
 void try_update_texture() {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -33,10 +47,26 @@ void try_update_texture() {
 
   update_pending = false;
 
-  // Directly bind the texture without querying the current bound texture
+  // Double-buffered PBO: bind the current PBO for asynchronous update
+  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[currentPBO]);
+
+  // Map the PBO so we can write data to it
+  void* pboMemory = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+  if (pboMemory) {
+      memcpy(pboMemory, render_data, render_size.x * render_size.y * 4);  // Copy render data to PBO
+      glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);  // Unmap buffer after copying
+  }
+
+  // Bind the texture and perform the texture update using the PBO
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA,
-                  GL_UNSIGNED_BYTE, render_data);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+
+  // Switch to the other PBO for the next frame
+  currentPBO = (currentPBO + 1) % 2;
+
+  // Unbind PBO and texture after the update
+  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 }  // namespace
@@ -81,8 +111,8 @@ void canvas::create(int32_t width, int32_t height) {
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA, render_size.x, render_size.y, 0,
+ 
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, render_size.x, render_size.y, 0,
                GL_BGRA, GL_UNSIGNED_BYTE, render_data);
   glBindTexture(GL_TEXTURE_2D, texture2d);
 
@@ -118,6 +148,8 @@ void canvas::create(int32_t width, int32_t height) {
 
   glDeleteShader(v_shader);
   glDeleteShader(f_shader);
+
+  create_pbos();
 }
 
 void canvas::draw(HDC hdc) {

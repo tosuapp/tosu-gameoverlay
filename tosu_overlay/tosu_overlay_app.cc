@@ -42,12 +42,12 @@ void TosuOverlay::OnContextInitialized() {
   // that instead of the default URL.
   url = command_line->GetSwitchValue("url");
   if (url.empty()) {
-    url = "http://127.0.0.1:24050/osuUserStats by HosizoraN/";
+    url = "http://127.0.0.1:24050/BTMC-Overlay by Happy_24/";
   }
 
   CefWindowInfo window_info;
 
-  window_info.SetAsWindowless(GetDesktopWindow());
+  window_info.SetAsWindowless(nullptr);
   window_info.windowless_rendering_enabled = TRUE;
   window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
   CefBrowserHost::CreateBrowserSync(window_info, handler, url, browser_settings,
@@ -88,6 +88,6 @@ void TosuOverlay::OnBeforeCommandLineProcessing(
   command_line->AppendSwitch("disable-web-security");
   command_line->AppendSwitch("ignore-certificate-errors");
 
-  command_line->AppendSwitchWithValue("remote-allow-origins", "*");
-  command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+  // command_line->AppendSwitchWithValue("remote-allow-origins", "*");
+  // command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
 }
