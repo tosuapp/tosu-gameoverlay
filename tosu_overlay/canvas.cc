@@ -156,12 +156,13 @@ void canvas::draw(HDC hdc) {
 
   glBindTexture(GL_TEXTURE_2D, texture);  // Bind the texture
 
-  glBegin(GL_QUADS);
+  glBegin(GL_TRIANGLE_STRIP);
+
   glTexCoord2i(0, 0); glVertex3i(0, 0, 0);
-  glTexCoord2i(0, 1); glVertex3i(0, 
-  render_size.y, 0);
-  glTexCoord2i(1, 1); glVertex3i(render_size.x, render_size.y, 0);
+  glTexCoord2i(0, 1); glVertex3i(0, render_size.y, 0);
   glTexCoord2i(1, 0); glVertex3i(render_size.x, 0, 0);
+  glTexCoord2i(1, 1); glVertex3i(render_size.x, render_size.y, 0);
+
   glEnd();
 
   glBindTexture(GL_TEXTURE_2D, 0);
