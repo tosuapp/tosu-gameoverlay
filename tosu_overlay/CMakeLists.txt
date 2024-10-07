@@ -12,13 +12,14 @@ set(CEFSIMPLE_SRCS
   tosu_overlay_app.h
   tosu_overlay_handler.cc
   tosu_overlay_handler.h
-  tosu_overlay_handler_win.cc
   tosu_overlay_win.cc
   tools.cc
   tools.h
   glad.cc
   canvas.cc
   resource.h
+  config.cc
+  config.h
 )
 
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)

@@ -14,4 +14,13 @@ std::wstring get_module_path(HINSTANCE hInstance) {
   return module_path;
 }
 
+uint32_t minmax(uint32_t value, uint32_t minValue, uint32_t maxValue) {
+    if (value < minValue) {
+        return minValue; // Return minValue if value is less than minValue
+    } else if (value > maxValue) {
+        return maxValue; // Return maxValue if value is greater than maxValue
+    }
+    return value; // Return the original value if it's within range
+}
+
 }  // namespace tools

@@ -5,6 +5,7 @@
 #include <tosu_overlay/canvas.h>
 #include <tosu_overlay/tosu_overlay_app.h>
 #include <tosu_overlay/tools.h>
+#include <tosu_overlay/config.h>
 
 #include <MinHook.h>
 
@@ -136,14 +137,16 @@ bool __stdcall swap_buffers_hk(HDC hdc) {
 }
 
 void main_thread(HINSTANCE hInstance) {
-  AllocConsole();
-  freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
-
+  // AllocConsole();
+  // freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
   std::wstring module_path = tools::get_module_path(hInstance);
 
-  auto cef_path =
-      std::filesystem::path(module_path).parent_path() / "libcef.dll";
-  printf("%s\n", cef_path.string().c_str());
+  auto parent_path = std::filesystem::path(module_path).parent_path();
+  auto config_path = parent_path / "config.json";
+
+  ConfigManager::getInstance(config_path.string());
+
+  auto cef_path = parent_path / "libcef.dll";
 
   LoadLibraryEx(cef_path.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
   auto last_error = GetLastError();

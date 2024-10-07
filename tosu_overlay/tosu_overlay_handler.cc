@@ -3,12 +3,14 @@
 // can be found in the LICENSE file.
 
 #include "tosu_overlay/tosu_overlay_handler.h"
+#include <wingdi.h>
 
 #include <sstream>
 #include <string>
 
 #include "canvas.h"
 #include "include/base/cef_callback.h"
+#include "include/base/cef_logging.h"
 #include "include/cef_app.h"
 #include "include/cef_parser.h"
 #include "include/views/cef_browser_view.h"
@@ -204,5 +206,9 @@ void SimpleHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
 #if !defined(OS_MAC)
 void SimpleHandler::PlatformShowWindow(CefRefPtr<CefBrowser> browser) {
   NOTIMPLEMENTED();
+}
+
+void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) {
+  NOTIMPLEMENTED();                       
 }
 #endif

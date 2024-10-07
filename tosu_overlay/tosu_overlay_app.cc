@@ -4,14 +4,17 @@
 
 #include "tosu_overlay/tosu_overlay_app.h"
 
+#include <cstdint>
 #include <string>
 #include <filesystem>
 
+#include "config.h"
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
 #include "include/internal/cef_types_runtime.h"
 #include "include/wrapper/cef_helpers.h"
 #include "tosu_overlay/tosu_overlay_handler.h"
+#include "tosu_overlay/tools.h"
 
 
 TosuOverlay::TosuOverlay(std::string cef_path) {
@@ -37,7 +40,10 @@ void TosuOverlay::OnContextInitialized() {
   // Specify CEF browser settings here.
   CefBrowserSettings browser_settings;
 
-  browser_settings.windowless_frame_rate = 60;
+  ConfigManager* config_manager = ConfigManager::getInstance();
+  auto json_data = config_manager->getJsonData();
+
+  browser_settings.windowless_frame_rate = tools::minmax(static_cast<uint32_t>(json_data["cef_fps"]), 10, 90);
 
   std::string url;
 
@@ -92,7 +98,12 @@ void TosuOverlay::OnBeforeCommandLineProcessing(
   command_line->AppendSwitch("ignore-certificate-errors");
 
   command_line->AppendSwitchWithValue("remote-allow-origins", "*");
-  command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+
+  ConfigManager* config_manager = ConfigManager::getInstance();
+  auto json_data = config_manager->getJsonData();
+  if (static_cast<bool>(json_data["cef_debugging_enabled"])) {
+    command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+  }
 
   auto user_data_dir = std::filesystem::path(this->cef_path) / "userdata";
 
