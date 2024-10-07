@@ -8,7 +8,7 @@ namespace {
 GLuint texture = 0;
 GLuint program = 0;
 
-GLuint pboIds[2];  // Double-buffered PBOs
+GLuint pboIds[4];  // Buffered PBOs
 int currentPBO = 0; // To track the active PBO
 
 uint8_t* render_data;
@@ -28,9 +28,9 @@ POINT get_window_size(HDC hdc) {
 }
 
 void create_pbos() {
-    glGenBuffers(2, pboIds);  // Create two PBOs
+    glGenBuffers(4, pboIds);  // Create two PBOs
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 4; ++i) {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[i]);
         glBufferData(GL_PIXEL_UNPACK_BUFFER, render_size.x * render_size.y * 4, nullptr, GL_STREAM_DRAW);
     }
@@ -62,7 +62,7 @@ void try_update_texture() {
   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA, GL_UNSIGNED_BYTE, 0);
 
   // Switch to the other PBO for the next frame
-  currentPBO = (currentPBO + 1) % 2;
+  currentPBO = (currentPBO + 1) % 4;
 
   // Unbind PBO and texture after the update
   glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);

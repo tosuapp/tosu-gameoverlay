@@ -5,15 +5,19 @@
 #include "tosu_overlay/tosu_overlay_app.h"
 
 #include <string>
+#include <filesystem>
 
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
 #include "include/internal/cef_types_runtime.h"
 #include "include/wrapper/cef_helpers.h"
 #include "tosu_overlay/tosu_overlay_handler.h"
+#include "tosu_overlay/tools.h"
 
 
-TosuOverlay::TosuOverlay() = default;
+TosuOverlay::TosuOverlay(std::string cef_path) {
+  this->cef_path = cef_path;
+};
 
 void TosuOverlay::OnContextInitialized() {
   CEF_REQUIRE_UI_THREAD();
@@ -88,6 +92,10 @@ void TosuOverlay::OnBeforeCommandLineProcessing(
   command_line->AppendSwitch("disable-web-security");
   command_line->AppendSwitch("ignore-certificate-errors");
 
-  // command_line->AppendSwitchWithValue("remote-allow-origins", "*");
-  // command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+  command_line->AppendSwitchWithValue("remote-allow-origins", "*");
+  command_line->AppendSwitchWithValue("remote-debugging-port", "9222");
+
+  auto user_data_dir = std::filesystem::path(this->cef_path) / "userdata";
+
+  command_line->AppendSwitchWithValue("user-data-dir", user_data_dir.string());
 }

@@ -4,6 +4,7 @@
 #include <include/cef_sandbox_win.h>
 #include <tosu_overlay/canvas.h>
 #include <tosu_overlay/tosu_overlay_app.h>
+#include <tosu_overlay/tools.h>
 
 #include <MinHook.h>
 
@@ -22,17 +23,6 @@
 #endif
 
 namespace {
-
-std::wstring get_module_path(HINSTANCE hInstance) {
-  wchar_t module_path[MAX_PATH];
-  if (GetModuleFileName(hInstance, module_path, sizeof(module_path)) == 0) {
-    printf("GetModuleFileName failed, error = %d\n",
-           static_cast<int32_t>(GetLastError()));
-    exit(1);
-  }
-
-  return module_path;
-}
 
 void initialize_cef(HINSTANCE hInstance) {
   // Provide CEF with command-line arguments.
@@ -71,11 +61,13 @@ void initialize_cef(HINSTANCE hInstance) {
   // TosuOverlay implements application-level callbacks for the browser process.
   // It will create the first browser instance in OnContextInitialized() after
   // CEF has initialized.
-  CefRefPtr<TosuOverlay> app(new TosuOverlay);
+  std::wstring module_path = tools::get_module_path(hInstance);
+  auto cef_path = std::filesystem::path(module_path).parent_path();
 
-  std::wstring module_path = get_module_path(hInstance);
+  CefRefPtr<TosuOverlay> app(new TosuOverlay(cef_path.string()));
+
   auto exe_path =
-      std::filesystem::path(module_path).parent_path() / "tosu_overlay.exe";
+      cef_path / "tosu_overlay.exe";
 
   CefString(&settings.browser_subprocess_path) = exe_path;
 
@@ -161,7 +153,7 @@ void main_thread(HINSTANCE hInstance) {
   AllocConsole();
   freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
 
-  std::wstring module_path = get_module_path(hInstance);
+  std::wstring module_path = tools::get_module_path(hInstance);
 
   auto cef_path =
       std::filesystem::path(module_path).parent_path() / "libcef.dll";

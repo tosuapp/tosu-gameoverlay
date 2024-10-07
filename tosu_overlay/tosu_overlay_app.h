@@ -10,7 +10,7 @@
 // Implement application-level callbacks for the browser process.
 class TosuOverlay : public CefApp, public CefBrowserProcessHandler {
  public:
-  TosuOverlay();
+  TosuOverlay(std::string cef_path);
 
   // CefApp methods:
   CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
@@ -24,6 +24,8 @@ class TosuOverlay : public CefApp, public CefBrowserProcessHandler {
   virtual void OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) override;
 
  private:
+  std::string cef_path;
+
   // Include the default reference counting implementation.
   IMPLEMENT_REFCOUNTING(TosuOverlay);
 };
