@@ -12,7 +12,6 @@
 #include "include/internal/cef_types_runtime.h"
 #include "include/wrapper/cef_helpers.h"
 #include "tosu_overlay/tosu_overlay_handler.h"
-#include "tosu_overlay/tools.h"
 
 
 TosuOverlay::TosuOverlay(std::string cef_path) {

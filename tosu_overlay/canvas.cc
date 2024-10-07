@@ -169,7 +169,12 @@ void canvas::draw(HDC hdc) {
   glGetIntegerv(GL_CURRENT_PROGRAM, &prev_program);
   glUseProgram(program);  // Bind shader program
 
-  glViewport(0, 0, (double)render_size.x, (double)render_size.y);
+  // Save the current viewport
+  GLint prev_viewport[4];
+  glGetIntegerv(GL_VIEWPORT, prev_viewport);
+
+  // Set your custom viewport if needed
+  glViewport(0, 0, render_size.x, render_size.y);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -198,6 +203,8 @@ void canvas::draw(HDC hdc) {
   glEnd();
 
   glBindTexture(GL_TEXTURE_2D, 0);
+
+  glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
 
   glUseProgram(prev_program);  // Restore previous program
 }
