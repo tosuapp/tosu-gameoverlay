@@ -75,7 +75,7 @@ jobs:
       - name: 📦 - Copy injector to tosu_overlay build
         if: ${{ matrix.os == 'windows-latest' }}
         shell: sh
-        run: cp tosu_injector/build/Release/tosu_injector.exe build/tosu_overlay/Release
+        run: cp tosu_injector/build/tosu_injector.exe build/tosu_overlay/Release
 
       - name: 🚀 - Upload artifacts for windows
         if: ${{ matrix.os == 'windows-latest' }}
