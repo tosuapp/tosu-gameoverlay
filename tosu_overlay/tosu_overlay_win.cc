@@ -25,7 +25,7 @@
 
 namespace {
 
-void initialize_cef(HINSTANCE hInstance) {
+void initialize_cef_subprocess(HINSTANCE hInstance) {
   // Provide CEF with command-line arguments.
   CefMainArgs main_args(hInstance);
 
@@ -37,6 +37,11 @@ void initialize_cef(HINSTANCE hInstance) {
     // The sub-process has completed so return here.
     return;
   }
+}
+
+void initialize_cef_dll(HINSTANCE hInstance) {
+  // Provide CEF with command-line arguments.
+  CefMainArgs main_args(hInstance);
 
   // Specify CEF global settings here.
   CefSettings settings;
@@ -121,7 +126,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   }
 #endif
 
-  initialize_cef(hInstance);
+  initialize_cef_subprocess(hInstance);
 
   return 0;
 }
@@ -162,7 +167,7 @@ void main_thread(HINSTANCE hInstance) {
 
   MH_EnableHook(MH_ALL_HOOKS);
 
-  std::thread{initialize_cef, hInstance}.detach();
+  std::thread{initialize_cef_dll, hInstance}.detach();
 }
 
 int32_t __stdcall DllMain(HINSTANCE hInstance, uint32_t reason, uintptr_t) {
