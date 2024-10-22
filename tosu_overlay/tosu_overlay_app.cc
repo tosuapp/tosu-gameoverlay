@@ -52,7 +52,7 @@ void TosuOverlay::OnContextInitialized() {
   // that instead of the default URL.
   url = command_line->GetSwitchValue("url");
   if (url.empty()) {
-    url = "http://127.0.0.1:24050/BTMC-Overlay by Happy_24/";
+    url = "http://127.0.0.1:24050/api/ingame";
   }
 
   CefWindowInfo window_info;
