@@ -5,7 +5,7 @@ int main(int argc, char** argv) {
   UNREFERENCED_PARAMETER(argc);
 
   if (argc < 2) {
-    return 0;
+    return 1;
   }
 
   const auto pid = std::stoi(argv[1]);
@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   if (!library_name_addr) {
     printf("failed to allocate memory in target process\n");
 
-    return 0;
+    return 2;
   }
 
   if (!WriteProcessMemory(process, library_name_addr,
@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     VirtualFreeEx(process, library_name_addr, library_path.string().size(),
                   MEM_RELEASE);
 
-    return 0;
+    return 3;
   }
 
   if (!CreateRemoteThread(
@@ -40,10 +40,12 @@ int main(int argc, char** argv) {
               GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA")),
           library_name_addr, NULL, NULL)) {
     printf("failed to create remote thread in target process\n");
-  }
 
-  VirtualFreeEx(process, library_name_addr, library_path.string().size(),
-                MEM_RELEASE);
+    VirtualFreeEx(process, library_name_addr, library_path.string().size(),
+                  MEM_RELEASE);
+
+    return 4;
+  }
 
   return 0;
 }
