@@ -1,4 +1,6 @@
 #include <tosu_overlay/canvas.h>
+#include <tosu_overlay/input.h>
+#include <tosu_overlay/tosu_overlay_handler.h>
 #include <mutex>
 
 #include <glad/glad.h>
@@ -8,8 +10,8 @@ namespace {
 GLuint texture = 0;
 GLuint program = 0;
 
-GLuint pboIds[4];  // Buffered PBOs
-int currentPBO = 0; // To track the active PBO
+GLuint pboIds[4];    // Buffered PBOs
+int currentPBO = 0;  // To track the active PBO
 
 uint8_t* render_data;
 POINT render_size;
@@ -28,14 +30,15 @@ POINT get_window_size(HDC hdc) {
 }
 
 void create_pbos() {
-    glGenBuffers(4, pboIds);  // Create two PBOs
+  glGenBuffers(4, pboIds);  // Create two PBOs
 
-    for (int i = 0; i < 4; ++i) {
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[i]);
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, render_size.x * render_size.y * 4, nullptr, GL_STREAM_DRAW);
-    }
+  for (int i = 0; i < 4; ++i) {
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[i]);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, render_size.x * render_size.y * 4,
+                 nullptr, GL_STREAM_DRAW);
+  }
 
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);  // Unbind PBO
+  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);  // Unbind PBO
 }
 
 void try_update_texture() {
@@ -53,13 +56,15 @@ void try_update_texture() {
   // Map the PBO so we can write data to it
   void* pboMemory = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
   if (pboMemory) {
-      memcpy(pboMemory, render_data, render_size.x * render_size.y * 4);  // Copy render data to PBO
-      glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);  // Unmap buffer after copying
+    memcpy(pboMemory, render_data,
+           render_size.x * render_size.y * 4);  // Copy render data to PBO
+    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);      // Unmap buffer after copying
   }
 
   // Bind the texture and perform the texture update using the PBO
   glBindTexture(GL_TEXTURE_2D, texture);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA,
+                  GL_UNSIGNED_BYTE, 0);
 
   // Switch to the other PBO for the next frame
   currentPBO = (currentPBO + 1) % 4;
@@ -111,7 +116,7 @@ void canvas::create(int32_t width, int32_t height) {
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
- 
+
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, render_size.x, render_size.y, 0,
                GL_BGRA, GL_UNSIGNED_BYTE, render_data);
   glBindTexture(GL_TEXTURE_2D, texture2d);
@@ -160,7 +165,8 @@ void canvas::draw(HDC hdc) {
 
   // Avoid unnecessary recreation
   if (window_size.x != render_size.x || window_size.y != render_size.y) {
-    create(window_size.x, window_size.y);  // Texture reallocation only when needed
+    create(window_size.x,
+           window_size.y);  // Texture reallocation only when needed
   }
 
   try_update_texture();
@@ -195,16 +201,21 @@ void canvas::draw(HDC hdc) {
 
   glBegin(GL_TRIANGLE_STRIP);
 
-  glTexCoord2i(0, 0); glVertex3i(0, 0, 0);
-  glTexCoord2i(0, 1); glVertex3i(0, render_size.y, 0);
-  glTexCoord2i(1, 0); glVertex3i(render_size.x, 0, 0);
-  glTexCoord2i(1, 1); glVertex3i(render_size.x, render_size.y, 0);
+  glTexCoord2i(0, 0);
+  glVertex3i(0, 0, 0);
+  glTexCoord2i(0, 1);
+  glVertex3i(0, render_size.y, 0);
+  glTexCoord2i(1, 0);
+  glVertex3i(render_size.x, 0, 0);
+  glTexCoord2i(1, 1);
+  glVertex3i(render_size.x, render_size.y, 0);
 
   glEnd();
 
   glBindTexture(GL_TEXTURE_2D, 0);
 
-  glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
+  glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2],
+             prev_viewport[3]);
 
   glUseProgram(prev_program);  // Restore previous program
 }

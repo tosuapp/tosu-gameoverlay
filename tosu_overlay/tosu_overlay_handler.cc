@@ -47,6 +47,10 @@ SimpleHandler* SimpleHandler::GetInstance() {
   return g_instance;
 }
 
+SimpleHandler::BrowserList SimpleHandler::GetBrowserList() {
+  return browser_list_;
+}
+
 void SimpleHandler::OnTitleChange(CefRefPtr<CefBrowser> browser,
                                   const CefString& title) {
   CEF_REQUIRE_UI_THREAD();
@@ -186,8 +190,7 @@ void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
 
   if (render_size.x == width && render_size.y == height) {
     canvas::set_data(buffer);
-  }
-  else {
+  } else {
     browser->GetHost()->WasResized();
   }
 }
@@ -208,7 +211,8 @@ void SimpleHandler::PlatformShowWindow(CefRefPtr<CefBrowser> browser) {
   NOTIMPLEMENTED();
 }
 
-void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) {
-  NOTIMPLEMENTED();                       
+void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser,
+                                        const CefString& title) {
+  NOTIMPLEMENTED();
 }
 #endif

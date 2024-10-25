@@ -6,17 +6,17 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <string>
 #include <filesystem>
+#include <string>
+
 
 #include "config.h"
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
 #include "include/internal/cef_types_runtime.h"
 #include "include/wrapper/cef_helpers.h"
-#include "tosu_overlay/tosu_overlay_handler.h"
 #include "tosu_overlay/tools.h"
-
+#include "tosu_overlay/tosu_overlay_handler.h"
 
 TosuOverlay::TosuOverlay(std::string cef_path) {
   this->cef_path = cef_path;
@@ -44,7 +44,8 @@ void TosuOverlay::OnContextInitialized() {
   ConfigManager* config_manager = ConfigManager::get_instance();
   auto json_data = config_manager->get_json_data();
 
-  browser_settings.windowless_frame_rate = std::clamp<uint32_t>(static_cast<uint32_t>(json_data["cef_fps"]), 10, 120);
+  browser_settings.windowless_frame_rate = std::clamp<uint32_t>(
+      static_cast<uint32_t>(json_data["cef_fps"]), 10, 120);
 
   std::string url;
 

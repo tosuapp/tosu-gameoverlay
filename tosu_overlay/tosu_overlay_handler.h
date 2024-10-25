@@ -18,6 +18,8 @@ class SimpleHandler : public CefClient,
   explicit SimpleHandler(bool is_alloy_style);
   ~SimpleHandler() override;
 
+  typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
+
   // Provide access to the single global instance of this object.
   static SimpleHandler* GetInstance();
 
@@ -60,6 +62,8 @@ class SimpleHandler : public CefClient,
                int width,
                int height) override;
 
+  BrowserList GetBrowserList();
+
  private:
   // Platform-specific implementation.
   void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
@@ -70,7 +74,6 @@ class SimpleHandler : public CefClient,
   const bool is_alloy_style_;
 
   // List of existing browser windows. Only accessed on the CEF UI thread.
-  typedef std::list<CefRefPtr<CefBrowser>> BrowserList;
   BrowserList browser_list_;
 
   bool is_closing_ = false;

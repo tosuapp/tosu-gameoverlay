@@ -20,6 +20,8 @@ set(CEFSIMPLE_SRCS
   resource.h
   config.cc
   config.h
+  input.cc
+  input.h
 )
 
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)

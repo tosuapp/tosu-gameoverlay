@@ -3,9 +3,10 @@
 #include <include/cef_command_line.h>
 #include <include/cef_sandbox_win.h>
 #include <tosu_overlay/canvas.h>
-#include <tosu_overlay/tosu_overlay_app.h>
-#include <tosu_overlay/tools.h>
 #include <tosu_overlay/config.h>
+#include <tosu_overlay/tools.h>
+#include <tosu_overlay/tosu_overlay_app.h>
+#include <tosu_overlay/tosu_overlay_handler.h>
 
 #include <MinHook.h>
 
@@ -16,6 +17,8 @@
 #include <mutex>
 #include <thread>
 
+#include <tosu_overlay/input.h>
+
 // Uncomment this line to manually enable sandbox support.
 // #define CEF_USE_SANDBOX 1
 
@@ -25,6 +28,9 @@
 
 namespace {
 
+bool is_cef_initialized = false;
+
+#if DESKTOP
 void initialize_cef_subprocess(HINSTANCE hInstance) {
   // Provide CEF with command-line arguments.
   CefMainArgs main_args(hInstance);
@@ -38,6 +44,7 @@ void initialize_cef_subprocess(HINSTANCE hInstance) {
     return;
   }
 }
+#endif
 
 void initialize_cef_dll(HINSTANCE hInstance) {
   // Provide CEF with command-line arguments.
@@ -72,8 +79,7 @@ void initialize_cef_dll(HINSTANCE hInstance) {
 
   CefRefPtr<TosuOverlay> app(new TosuOverlay(cef_path.string()));
 
-  auto exe_path =
-      cef_path / "tosu_overlay.exe";
+  auto exe_path = cef_path / "tosu_overlay.exe";
 
   CefString(&settings.browser_subprocess_path) = exe_path;
 
@@ -84,6 +90,8 @@ void initialize_cef_dll(HINSTANCE hInstance) {
     // CefGetExitCode();
     return;
   }
+
+  is_cef_initialized = true;
 
   // Run the CEF message loop. This will block until CefQuitMessageLoop() is
   // called.
@@ -97,6 +105,7 @@ void initialize_cef_dll(HINSTANCE hInstance) {
 
 void* o_swap_buffers;
 std::once_flag glad_init_flag;
+std::once_flag input_init_flag;
 
 #endif
 }  // namespace
@@ -133,8 +142,14 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 #else
 
 bool __stdcall swap_buffers_hk(HDC hdc) {
-  std::call_once(glad_init_flag,
-                 []() { printf("gl loading result: %d\n", gladLoadGL()); });
+  std::call_once(glad_init_flag, []() { gladLoadGL(); });
+
+  if (is_cef_initialized) {
+    std::call_once(input_init_flag, [hdc]() {
+      input::initialize(WindowFromDC(hdc),
+                        SimpleHandler::GetInstance()->GetBrowserList().front());
+    });
+  }
 
   canvas::draw(hdc);
 
@@ -144,7 +159,8 @@ bool __stdcall swap_buffers_hk(HDC hdc) {
 void main_thread(HINSTANCE hInstance) {
   // AllocConsole();
   // freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
-  std::wstring module_path = tools::get_module_path(hInstance);
+
+  auto module_path = tools::get_module_path(hInstance);
 
   auto parent_path = std::filesystem::path(module_path).parent_path();
   auto config_path = parent_path / "config.json";
