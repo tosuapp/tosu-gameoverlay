@@ -9,7 +9,7 @@
 
 namespace {
 
-bool edit_mode = true;
+bool edit_mode = false;
 
 int last_click_x_;
 int last_click_y_;
@@ -319,7 +319,8 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
     case WM_MOUSELEAVE:
     case WM_MOUSEWHEEL:
       on_mouse_event(uMsg, wParam, lParam);
-      break;
+
+      return 0;
     case WM_SYSCHAR:
     case WM_SYSKEYDOWN:
     case WM_SYSKEYUP:
@@ -327,7 +328,7 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
     case WM_KEYUP:
     case WM_CHAR:
       on_key_event(uMsg, wParam, lParam);
-      break;
+      return 0;
   }
 
   return CallWindowProcW(reinterpret_cast<WNDPROC>(original_wnd_proc), hWnd,
