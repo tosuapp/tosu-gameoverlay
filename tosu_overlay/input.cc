@@ -10,6 +10,7 @@
 namespace {
 
 bool edit_mode = false;
+uint32_t main_thread;
 
 int last_click_x_;
 int last_click_y_;
@@ -328,7 +329,7 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
     case WM_KEYUP:
     case WM_CHAR:
       on_key_event(uMsg, wParam, lParam);
-      return 0;
+      break;
   }
 
   return CallWindowProcW(reinterpret_cast<WNDPROC>(original_wnd_proc), hWnd,
@@ -341,7 +342,7 @@ void bindings_thread() {
   while (true) {
     // ghetto way but whatever
     const auto is_ctrl_down = GetAsyncKeyState(VK_LCONTROL) != 0;
-    const auto is_shift_down = GetAsyncKeyState(VK_SHIFT) != 0;
+    const auto is_shift_down = GetAsyncKeyState(VK_LSHIFT) != 0;
     const auto is_space_down = GetAsyncKeyState(VK_SPACE) != 0;
 
     auto current_state = is_ctrl_down && is_shift_down && is_space_down;
@@ -368,7 +369,10 @@ void bindings_thread() {
 
 }  // namespace
 
-void input::initialize(HWND hwnd, CefRefPtr<CefBrowser> browser) {
+void input::initialize(HWND hwnd,
+                       uint32_t main_thread_id,
+                       CefRefPtr<CefBrowser> browser) {
+  main_thread = main_thread_id;
   window_handle = hwnd;
   cef_browser = browser;
 

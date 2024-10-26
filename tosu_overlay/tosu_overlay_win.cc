@@ -146,7 +146,7 @@ bool __stdcall swap_buffers_hk(HDC hdc) {
 
   if (is_cef_initialized) {
     std::call_once(input_init_flag, [hdc]() {
-      input::initialize(WindowFromDC(hdc),
+      input::initialize(WindowFromDC(hdc), GetCurrentThreadId(),
                         SimpleHandler::GetInstance()->GetBrowserList().front());
     });
   }
