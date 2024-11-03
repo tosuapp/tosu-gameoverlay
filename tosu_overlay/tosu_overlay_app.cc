@@ -9,13 +9,12 @@
 #include <filesystem>
 #include <string>
 
-
 #include "config.h"
 #include "include/cef_browser.h"
 #include "include/cef_command_line.h"
 #include "include/internal/cef_types_runtime.h"
 #include "include/wrapper/cef_helpers.h"
-#include "tosu_overlay/tools.h"
+#include "tosu_overlay/state.h"
 #include "tosu_overlay/tosu_overlay_handler.h"
 
 TosuOverlay::TosuOverlay(std::string cef_path) {
@@ -49,12 +48,7 @@ void TosuOverlay::OnContextInitialized() {
 
   std::string url;
 
-  // Check if a "--url=" value was provided via the command-line. If so, use
-  // that instead of the default URL.
-  url = command_line->GetSwitchValue("url");
-  if (url.empty()) {
-    url = "http://127.0.0.1:24050/api/ingame";
-  }
+  url = "http://" + state::host + ":" + state::port + "/api/ingame";
 
   CefWindowInfo window_info;
 
