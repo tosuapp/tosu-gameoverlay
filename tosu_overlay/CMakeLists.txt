@@ -9,20 +9,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # tosu_overlay sources.
 set(CEFSIMPLE_SRCS
   tosu_overlay_app.cc
-  tosu_overlay_app.h
   tosu_overlay_handler.cc
-  tosu_overlay_handler.h
   tosu_overlay_win.cc
   tools.cc
-  tools.h
   glad.cc
   canvas.cc
-  resource.h
   config.cc
-  config.h
   input.cc
-  input.h
 )
+
+if (A64)
+  set(MINHOOK_LIB minhook64)
+else()
+  set(MINHOOK_LIB minhook)
+endif()
 
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)
 source_group(${PROJECT_NAME} FILES ${CEFSIMPLE_SRCS})
@@ -81,7 +81,7 @@ if(OS_WINDOWS)
 
   add_dependencies(${CEF_TARGET} libcef_dll_wrapper)
   SET_EXECUTABLE_TARGET_PROPERTIES(${CEF_TARGET})
-  target_link_libraries(${CEF_TARGET} libcef_lib libcef_dll_wrapper minhook opengl32 delayimp ${CEF_STANDARD_LIBS})
+  target_link_libraries(${CEF_TARGET} libcef_lib libcef_dll_wrapper ${MINHOOK_LIB} delayimp ${CEF_STANDARD_LIBS})
 
   if(USE_SANDBOX)
     # Logical target used to link the cef_sandbox library.

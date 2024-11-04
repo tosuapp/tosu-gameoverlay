@@ -198,8 +198,8 @@ void parse_tosu_env(std::filesystem::path overlay_dir) {
 }
 
 void main_thread(HINSTANCE hInstance) {
-  // AllocConsole();
-  // freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
+  AllocConsole();
+  freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
 
   const auto module_path = tools::get_module_path(hInstance);
 
