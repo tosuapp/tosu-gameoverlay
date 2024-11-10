@@ -7,6 +7,89 @@
 
 namespace {
 
+struct GLStateBackup {
+  GLint last_active_texture;
+  GLint last_program;
+  GLint last_texture;
+  GLint last_array_buffer;
+  GLint last_element_array_buffer;
+  GLint last_vertex_array;
+  GLint last_polygon_mode[2];
+  GLint last_viewport[4];
+  GLint last_scissor_box[4];
+  GLint last_blend_src_rgb;
+  GLint last_blend_dst_rgb;
+  GLint last_blend_src_alpha;
+  GLint last_blend_dst_alpha;
+  GLint last_blend_equation_rgb;
+  GLint last_blend_equation_alpha;
+  GLboolean last_enable_blend;
+  GLboolean last_enable_cull_face;
+  GLboolean last_enable_depth_test;
+  GLboolean last_enable_scissor_test;
+
+  void backup() {
+    glGetIntegerv(GL_ACTIVE_TEXTURE, &last_active_texture);
+    glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+    glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+    glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
+    glGetIntegerv(GL_VIEWPORT, last_viewport);
+    glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box);
+    glGetIntegerv(GL_BLEND_SRC_RGB, &last_blend_src_rgb);
+    glGetIntegerv(GL_BLEND_DST_RGB, &last_blend_dst_rgb);
+    glGetIntegerv(GL_BLEND_SRC_ALPHA, &last_blend_src_alpha);
+    glGetIntegerv(GL_BLEND_DST_ALPHA, &last_blend_dst_alpha);
+    glGetIntegerv(GL_BLEND_EQUATION_RGB, &last_blend_equation_rgb);
+    glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &last_blend_equation_alpha);
+    last_enable_blend = glIsEnabled(GL_BLEND);
+    last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
+    last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+    last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
+  }
+
+  void restore() {
+    glUseProgram(last_program);
+    glBindTexture(GL_TEXTURE_2D, last_texture);
+    glActiveTexture(last_active_texture);
+    glBindVertexArray(last_vertex_array);
+    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
+    glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+    glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb,
+                        last_blend_src_alpha, last_blend_dst_alpha);
+
+    // Restore enable/disable states
+    if (last_enable_blend)
+      glEnable(GL_BLEND);
+    else
+      glDisable(GL_BLEND);
+
+    if (last_enable_cull_face)
+      glEnable(GL_CULL_FACE);
+    else
+      glDisable(GL_CULL_FACE);
+
+    if (last_enable_depth_test)
+      glEnable(GL_DEPTH_TEST);
+    else
+      glDisable(GL_DEPTH_TEST);
+
+    if (last_enable_scissor_test)
+      glEnable(GL_SCISSOR_TEST);
+    else
+      glDisable(GL_SCISSOR_TEST);
+
+    glPolygonMode(GL_FRONT_AND_BACK, last_polygon_mode[0]);
+    glViewport(last_viewport[0], last_viewport[1], last_viewport[2],
+               last_viewport[3]);
+    glScissor(last_scissor_box[0], last_scissor_box[1], last_scissor_box[2],
+              last_scissor_box[3]);
+  }
+};
+
 GLuint texture = 0;
 GLuint program = 0;
 
@@ -19,6 +102,10 @@ POINT render_size;
 std::mutex mutex;
 
 bool update_pending = true;
+
+GLuint vao = 0;
+GLuint vbo = 0;
+GLint tex_location = -1;
 
 POINT get_window_size(HDC hdc) {
   HWND window = WindowFromDC(hdc);
@@ -74,6 +161,66 @@ void try_update_texture() {
   glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void create_vertex_buffer() {
+    // Create and bind VAO
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // Create and bind VBO
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    // Vertex data: position (x,y) and texture coordinates (u,v)
+    float vertices[] = {
+        // pos      // tex
+        0.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 1.0f, 1.0f
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+const char* v_shader_src = R"(
+    #version 330 core
+    layout (location = 0) in vec2 aPos;
+    layout (location = 1) in vec2 aTexCoord;
+    out vec2 TexCoord;
+    uniform vec2 screenSize;
+
+    void main() {
+        vec2 pos = aPos * screenSize;
+        gl_Position = vec4(pos.x / screenSize.x * 2.0 - 1.0, 
+                          1.0 - pos.y / screenSize.y * 2.0, 0.0, 1.0);
+        TexCoord = aTexCoord;
+    }
+)";
+
+const char* f_shader_src = R"(
+    #version 330 core
+    in vec2 TexCoord;
+    out vec4 FragColor;
+    uniform sampler2D tex_sampler;
+
+    void main() {
+        FragColor = texture(tex_sampler, TexCoord);
+        if (FragColor.a < 0.003) 
+            discard;
+    }
+)";
+
 }  // namespace
 
 POINT canvas::get_render_size() {
@@ -126,21 +273,6 @@ void canvas::create(int32_t width, int32_t height) {
   auto v_shader = glCreateShader(GL_VERTEX_SHADER);
   auto f_shader = glCreateShader(GL_FRAGMENT_SHADER);
 
-  auto v_shader_src =
-      "void main(void)"
-      "{"
-      "	gl_TexCoord[0] = gl_MultiTexCoord0;"
-      "	gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;"
-      "}";
-
-  auto f_shader_src =
-      "uniform sampler2D tex_sampler;"
-      "void main(void)"
-      "{"
-      "	gl_FragColor = texture2D(tex_sampler,gl_TexCoord[0].st);"
-      " if (gl_FragColor.a < 0.003) discard;"
-      "}";
-
   glShaderSource(v_shader, 1, &v_shader_src, 0);
   glShaderSource(f_shader, 1, &f_shader_src, 0);
   glCompileShader(v_shader);
@@ -151,71 +283,51 @@ void canvas::create(int32_t width, int32_t height) {
   glAttachShader(program, f_shader);
   glLinkProgram(program);
 
+  // Get uniform locations
+  glUseProgram(program);
+  tex_location = glGetUniformLocation(program, "tex_sampler");
+  GLint screen_size_location = glGetUniformLocation(program, "screenSize");
+  glUniform2f(screen_size_location, (float)width, (float)height);
+  glUseProgram(0);
+
   glDeleteShader(v_shader);
   glDeleteShader(f_shader);
 
+  create_vertex_buffer();
   create_pbos();
 }
 
 void canvas::draw(HDC hdc) {
-  auto window_size = get_window_size(hdc);
-  if (window_size.x == 0 || window_size.y == 0) {
-    return;
-  }
+    auto window_size = get_window_size(hdc);
+    if (window_size.x == 0 || window_size.y == 0) {
+        return;
+    }
 
-  // Avoid unnecessary recreation
-  if (window_size.x != render_size.x || window_size.y != render_size.y) {
-    create(window_size.x,
-           window_size.y);  // Texture reallocation only when needed
-  }
+    if (window_size.x != render_size.x || window_size.y != render_size.y) {
+        create(window_size.x, window_size.y);
+    }
 
-  try_update_texture();
+    try_update_texture();
 
-  GLint prev_program;
-  glGetIntegerv(GL_CURRENT_PROGRAM, &prev_program);
-  glUseProgram(program);  // Bind shader program
+    GLStateBackup state;
+    state.backup();
 
-  // Save the current viewport
-  GLint prev_viewport[4];
-  glGetIntegerv(GL_VIEWPORT, prev_viewport);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
 
-  // Set your custom viewport if needed
-  glViewport(0, 0, render_size.x, render_size.y);
+    glUseProgram(program);
+    glBindVertexArray(vao);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(tex_location, 0);
 
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrtho(0.0, (double)render_size.x, (double)render_size.y, 0.0, -1.0, 1.0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-  glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+    glUseProgram(0);
 
-  // Enable texture and setup blending only once
-  glEnable(GL_TEXTURE_2D);
-  glDisable(GL_LIGHTING);
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  glBindTexture(GL_TEXTURE_2D, texture);  // Bind the texture
-
-  glBegin(GL_TRIANGLE_STRIP);
-
-  glTexCoord2i(0, 0);
-  glVertex3i(0, 0, 0);
-  glTexCoord2i(0, 1);
-  glVertex3i(0, render_size.y, 0);
-  glTexCoord2i(1, 0);
-  glVertex3i(render_size.x, 0, 0);
-  glTexCoord2i(1, 1);
-  glVertex3i(render_size.x, render_size.y, 0);
-
-  glEnd();
-
-  glBindTexture(GL_TEXTURE_2D, 0);
-
-  glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2],
-             prev_viewport[3]);
-
-  glUseProgram(prev_program);  // Restore previous program
+    state.restore();
 }
