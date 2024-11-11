@@ -21,8 +21,6 @@ float device_scale_factor_ = 1.0f;
 
 HWND window_handle = 0;
 
-LONG_PTR original_wnd_proc = 0;
-
 CefRefPtr<CefBrowser> cef_browser;
 
 int DeviceToLogical(int value, float device_scale_factor) {
@@ -284,6 +282,7 @@ void on_key_event(UINT code, WPARAM wparam, LPARAM lparam) {
     event.type = KEYEVENT_KEYUP;
   else
     event.type = KEYEVENT_CHAR;
+
   event.modifiers = GetCefKeyboardModifiers(wparam, lparam);
 
   if ((event.type == KEYEVENT_CHAR) && IsKeyDown(VK_RMENU)) {
@@ -299,6 +298,8 @@ void on_key_event(UINT code, WPARAM wparam, LPARAM lparam) {
 
   cef_browser->GetHost()->SendKeyEvent(event);
 }
+
+LONG_PTR original_wnd_proc = 0;
 
 LRESULT __stdcall wnd_proc_hk(HWND hWnd,
                               UINT uMsg,
@@ -319,8 +320,9 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
     case WM_MOUSEMOVE:
     case WM_MOUSELEAVE:
     case WM_MOUSEWHEEL:
-      on_mouse_event(uMsg, wParam, lParam);
-
+      if constexpr (sizeof(void*) == 8) {
+        on_mouse_event(uMsg, wParam, lParam);
+      }
       return 0;
     case WM_SYSCHAR:
     case WM_SYSKEYDOWN:
@@ -328,12 +330,54 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
     case WM_KEYDOWN:
     case WM_KEYUP:
     case WM_CHAR:
-      on_key_event(uMsg, wParam, lParam);
-      break;
+      if constexpr (sizeof(void*) == 8) {
+        on_key_event(uMsg, wParam, lParam);
+      }
+      return 0;
   }
 
   return CallWindowProcW(reinterpret_cast<WNDPROC>(original_wnd_proc), hWnd,
                          uMsg, wParam, lParam);
+}
+
+HHOOK original_get_message;
+
+LRESULT __stdcall get_message(int code, WPARAM wparam, LPARAM lparam) {
+  if (!edit_mode) {
+    return CallNextHookEx(original_get_message, code, wparam, lparam);
+  }
+
+  if (wparam == PM_REMOVE) {
+    const auto msg_raw = reinterpret_cast<MSG*>(lparam);
+
+    const auto msg = msg_raw->message;
+    const auto w_param = msg_raw->wParam;
+    const auto l_param = msg_raw->lParam;
+
+    switch (msg) {
+      case WM_LBUTTONDOWN:
+      case WM_RBUTTONDOWN:
+      case WM_MBUTTONDOWN:
+      case WM_LBUTTONUP:
+      case WM_RBUTTONUP:
+      case WM_MBUTTONUP:
+      case WM_MOUSEMOVE:
+      case WM_MOUSELEAVE:
+      case WM_MOUSEWHEEL:
+        on_mouse_event(msg, w_param, l_param);
+        break;
+      case WM_SYSCHAR:
+      case WM_SYSKEYDOWN:
+      case WM_SYSKEYUP:
+      case WM_KEYDOWN:
+      case WM_KEYUP:
+      case WM_CHAR:
+        on_key_event(msg, w_param, l_param);
+        break;
+    }
+  }
+
+  return CallNextHookEx(original_get_message, code, wparam, lparam);
 }
 
 void bindings_thread() {
@@ -376,6 +420,17 @@ void input::initialize(HWND hwnd,
   window_handle = hwnd;
   cef_browser = browser;
 
+  if constexpr (sizeof(void*) == 4) {
+    // used for reading input data
+    while (!original_get_message) {
+      original_get_message = SetWindowsHookExA(            //
+          WH_GETMESSAGE, &get_message,                     //
+          GetModuleHandleA(nullptr), GetCurrentThreadId()  //
+      );
+    }
+  }
+
+  // used for blocking inputs
   original_wnd_proc = SetWindowLongPtr(hwnd, GWLP_WNDPROC,
                                        reinterpret_cast<LONG_PTR>(wnd_proc_hk));
 
