@@ -163,7 +163,8 @@ void parse_tosu_env(std::filesystem::path overlay_dir) {
     return;
   }
 
-  const auto tosu_dir = overlay_dir.parent_path();
+  // tosu/game_overlay/<bitness>
+  const auto tosu_dir = overlay_dir.parent_path().parent_path();
   const auto env_path = tosu_dir / "tsosu.env";
 
   if (!std::filesystem::exists(env_path)) {
