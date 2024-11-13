@@ -14,6 +14,7 @@
 #include "include/cef_command_line.h"
 #include "include/internal/cef_types_runtime.h"
 #include "include/wrapper/cef_helpers.h"
+#include "tosu_overlay/executor.h"
 #include "tosu_overlay/state.h"
 #include "tosu_overlay/tosu_overlay_handler.h"
 
@@ -48,25 +49,16 @@ void TosuOverlay::OnContextInitialized() {
 
   std::string url;
 
-  url = "http://" + state::host + ":" + state::port + "/api/ingame";
+  url = "http://localhost:5173/";
 
   CefWindowInfo window_info;
 
   window_info.SetAsWindowless(nullptr);
   window_info.windowless_rendering_enabled = TRUE;
   window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+
   CefBrowserHost::CreateBrowserSync(window_info, handler, url, browser_settings,
                                     nullptr, nullptr);
-
-  // CefBrowserHost::CreateBrowserSync(window_info, handler,
-  // "https://google.com",
-  //                                   browser_settings, nullptr, nullptr);
-
-  // CefBrowserHost::CreateBrowserSync(window_info, handler, "https://ya.com",
-  //                                   browser_settings, nullptr, nullptr);
-
-  // CefBrowserHost::CreateBrowserSync(window_info, handler, "https://tosu.app",
-  //                                   browser_settings, nullptr, nullptr);
 }
 
 CefRefPtr<CefClient> TosuOverlay::GetDefaultClient() {

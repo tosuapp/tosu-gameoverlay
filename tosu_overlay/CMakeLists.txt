@@ -16,6 +16,8 @@ set(CEFSIMPLE_SRCS
   canvas.cc
   config.cc
   input.cc
+  executor.cc
+  subprocess_app.cc
 )
 
 if (A64)

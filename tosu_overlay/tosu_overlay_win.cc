@@ -19,6 +19,8 @@
 #include <mutex>
 #include <thread>
 
+#include "subprocess_app.h"
+
 #include <tosu_overlay/input.h>
 
 // Uncomment this line to manually enable sandbox support.
@@ -40,7 +42,9 @@ void initialize_cef_subprocess(HINSTANCE hInstance) {
   // CEF applications have multiple sub-processes (render, GPU, etc) that share
   // the same executable. This function checks the command-line and, if this is
   // a sub-process, executes the appropriate logic.
-  auto exit_code = CefExecuteProcess(main_args, nullptr, nullptr);
+  CefRefPtr<SubprocessApp> app(new SubprocessApp);
+
+  auto exit_code = CefExecuteProcess(main_args, app, nullptr);
   if (exit_code >= 0) {
     // The sub-process has completed so return here.
     return;
@@ -158,46 +162,6 @@ bool __stdcall swap_buffers_hk(HDC hdc) {
   return reinterpret_cast<decltype(&swap_buffers_hk)>(o_swap_buffers)(hdc);
 }
 
-void parse_tosu_env(std::filesystem::path overlay_dir) {
-  if (!overlay_dir.has_parent_path()) {
-    return;
-  }
-
-  // tosu/game_overlay/<bitness>
-  const auto tosu_dir = overlay_dir.parent_path().parent_path();
-  const auto env_path = tosu_dir / "tsosu.env";
-
-  if (!std::filesystem::exists(env_path)) {
-    return;
-  }
-
-  auto file = std::ifstream(env_path.string());
-
-  std::string line;
-  while (std::getline(file, line)) {
-    // skip empty lines and comments
-    if (line.empty() || line.data()[0] == '#') {
-      continue;
-    }
-
-    auto delimiter_pos = line.find('=');
-
-    // delimiter not found
-    if (delimiter_pos == std::string::npos) {
-      continue;
-    }
-
-    auto key = line.substr(0, delimiter_pos);
-    auto value = line.substr(delimiter_pos + 1, line.length() - delimiter_pos);
-
-    if (key == "SERVER_IP") {
-      state::host = value;
-    } else if (key == "SERVER_PORT") {
-      state::port = value;
-    }
-  }
-}
-
 void main_thread(HINSTANCE hInstance) {
   // AllocConsole();
   // freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
@@ -206,8 +170,6 @@ void main_thread(HINSTANCE hInstance) {
 
   const auto parent_path = std::filesystem::path(module_path).parent_path();
   const auto config_path = parent_path / "config.json";
-
-  parse_tosu_env(parent_path);
 
   ConfigManager::get_instance(config_path.string());
 

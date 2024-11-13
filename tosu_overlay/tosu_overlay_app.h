@@ -20,8 +20,9 @@ class TosuOverlay : public CefApp, public CefBrowserProcessHandler {
   // CefBrowserProcessHandler methods:
   void OnContextInitialized() override;
   CefRefPtr<CefClient> GetDefaultClient() override;
-
-  virtual void OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) override;
+  virtual void OnBeforeCommandLineProcessing(
+      const CefString& process_type,
+      CefRefPtr<CefCommandLine> command_line) override;
 
  private:
   std::string cef_path;

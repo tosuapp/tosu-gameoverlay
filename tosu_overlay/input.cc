@@ -3,6 +3,8 @@
 #include <tosu_overlay/tosu_overlay_handler.h>
 #include <windowsx.h>
 #include <thread>
+#include "executor.h"
+#include "include/cef_v8.h"
 
 // Thanks !!! :D
 // https://github.com/ONLYOFFICE/desktop-sdk/blob/master/ChromiumBasedEditors/lib/src/cef/windows/tests/cefclient/browser/osr_window_win.cc
@@ -164,6 +166,10 @@ void on_mouse_event(UINT code, WPARAM wparam, LPARAM lparam) {
     }
   }
 
+  if (!edit_mode && code != WM_MOUSEMOVE && code != WM_MOUSELEAVE) {
+    return;
+  }
+
   switch (code) {
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
@@ -270,6 +276,10 @@ void on_mouse_event(UINT code, WPARAM wparam, LPARAM lparam) {
 }
 
 void on_key_event(UINT code, WPARAM wparam, LPARAM lparam) {
+  if (!edit_mode) {
+    return;
+  }
+
   CefKeyEvent event;
   event.windows_key_code = wparam;
   event.native_key_code = lparam;
@@ -343,10 +353,6 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
 HHOOK original_get_message;
 
 LRESULT __stdcall get_message(int code, WPARAM wparam, LPARAM lparam) {
-  if (!edit_mode) {
-    return CallNextHookEx(original_get_message, code, wparam, lparam);
-  }
-
   if (wparam == PM_REMOVE) {
     const auto msg_raw = reinterpret_cast<MSG*>(lparam);
 
@@ -374,42 +380,45 @@ LRESULT __stdcall get_message(int code, WPARAM wparam, LPARAM lparam) {
       case WM_CHAR:
         on_key_event(msg, w_param, l_param);
         break;
+      case WM_USER + 1:
+        edit_mode = static_cast<bool>(l_param);
+        return 0;
     }
   }
 
   return CallNextHookEx(original_get_message, code, wparam, lparam);
 }
 
-void bindings_thread() {
-  bool last_states[3];
+// void bindings_thread() {
+//   bool last_states[3];
 
-  while (true) {
-    // ghetto way but whatever
-    const auto is_ctrl_down = GetAsyncKeyState(VK_LCONTROL) != 0;
-    const auto is_shift_down = GetAsyncKeyState(VK_LSHIFT) != 0;
-    const auto is_space_down = GetAsyncKeyState(VK_SPACE) != 0;
+//   while (true) {
+//     // ghetto way but whatever
+//     const auto is_ctrl_down = GetAsyncKeyState(VK_LCONTROL) != 0;
+//     const auto is_shift_down = GetAsyncKeyState(VK_LSHIFT) != 0;
+//     const auto is_space_down = GetAsyncKeyState(VK_SPACE) != 0;
 
-    auto current_state = is_ctrl_down && is_shift_down && is_space_down;
-    auto last_state = last_states[0] && last_states[1] && last_states[2];
+//     auto current_state = is_ctrl_down && is_shift_down && is_space_down;
+//     auto last_state = last_states[0] && last_states[1] && last_states[2];
 
-    if (current_state != last_state) {
-      if (current_state) {
-        auto script = edit_mode ? "window.postMessage('editingEnded')"
-                                : "window.postMessage('editingStarted')";
+//     if (current_state != last_state) {
+//       if (current_state) {
+//         auto script = edit_mode ? "window.postMessage('editingEnded')"
+//                                 : "window.postMessage('editingStarted')";
 
-        cef_browser->GetMainFrame()->ExecuteJavaScript(script, "", 0);
+//         cef_browser->GetMainFrame()->ExecuteJavaScript(script, "", 0);
 
-        edit_mode = !edit_mode;
-      }
-    }
+//         edit_mode = !edit_mode;
+//       }
+//     }
 
-    last_states[0] = is_ctrl_down;
-    last_states[1] = is_shift_down;
-    last_states[2] = is_space_down;
+//     last_states[0] = is_ctrl_down;
+//     last_states[1] = is_shift_down;
+//     last_states[2] = is_space_down;
 
-    Sleep(1);
-  }
-}
+//     Sleep(1);
+//   }
+// }
 
 }  // namespace
 
@@ -434,5 +443,10 @@ void input::initialize(HWND hwnd,
   original_wnd_proc = SetWindowLongPtr(hwnd, GWLP_WNDPROC,
                                        reinterpret_cast<LONG_PTR>(wnd_proc_hk));
 
-  std::thread(bindings_thread).detach();
+  cef_browser->GetMainFrame()->ExecuteJavaScript(
+      "window.mainProcessHwnd = " +
+          std::to_string(reinterpret_cast<uintptr_t>(hwnd)),
+      "", 0);
+
+  // std::thread(bindings_thread).detach();
 }

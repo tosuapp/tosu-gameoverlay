@@ -36,6 +36,7 @@ SimpleHandler::SimpleHandler(bool is_alloy_style)
     : is_alloy_style_(is_alloy_style) {
   DCHECK(!g_instance);
   g_instance = this;
+  
 }
 
 SimpleHandler::~SimpleHandler() {
