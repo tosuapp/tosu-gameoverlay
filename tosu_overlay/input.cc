@@ -315,11 +315,6 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
                               UINT uMsg,
                               WPARAM wParam,
                               LPARAM lParam) {
-  if (!edit_mode) {
-    return CallWindowProcW(reinterpret_cast<WNDPROC>(original_wnd_proc), hWnd,
-                           uMsg, wParam, lParam);
-  }
-
   switch (uMsg) {
     case WM_LBUTTONDOWN:
     case WM_RBUTTONDOWN:
@@ -333,7 +328,11 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
       if constexpr (sizeof(void*) == 8) {
         on_mouse_event(uMsg, wParam, lParam);
       }
-      return 0;
+
+      if (edit_mode) {
+        return 0;
+      }
+      break;
     case WM_SYSCHAR:
     case WM_SYSKEYDOWN:
     case WM_SYSKEYUP:
@@ -343,6 +342,12 @@ LRESULT __stdcall wnd_proc_hk(HWND hWnd,
       if constexpr (sizeof(void*) == 8) {
         on_key_event(uMsg, wParam, lParam);
       }
+      if (edit_mode) {
+        return 0;
+      }
+      break;
+    case WM_USER + 1:
+      edit_mode = static_cast<bool>(lParam);
       return 0;
   }
 
@@ -429,15 +434,15 @@ void input::initialize(HWND hwnd,
   window_handle = hwnd;
   cef_browser = browser;
 
-  if constexpr (sizeof(void*) == 4) {
-    // used for reading input data
-    while (!original_get_message) {
-      original_get_message = SetWindowsHookExA(            //
-          WH_GETMESSAGE, &get_message,                     //
-          GetModuleHandleA(nullptr), GetCurrentThreadId()  //
-      );
-    }
+  // if constexpr (sizeof(void*) == 4) {
+  //  used for reading input data
+  while (!original_get_message) {
+    original_get_message = SetWindowsHookExA(            //
+        WH_GETMESSAGE, &get_message,                     //
+        GetModuleHandleA(nullptr), GetCurrentThreadId()  //
+    );
   }
+  //}
 
   // used for blocking inputs
   original_wnd_proc = SetWindowLongPtr(hwnd, GWLP_WNDPROC,

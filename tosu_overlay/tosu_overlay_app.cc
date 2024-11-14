@@ -45,7 +45,7 @@ void TosuOverlay::OnContextInitialized() {
   auto json_data = config_manager->get_json_data();
 
   browser_settings.windowless_frame_rate = std::clamp<uint32_t>(
-      static_cast<uint32_t>(json_data["cef_fps"]), 10, 120);
+      static_cast<uint32_t>(json_data["cef_fps"]), 10, 360);
 
   std::string url;
 

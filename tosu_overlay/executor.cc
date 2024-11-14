@@ -10,8 +10,9 @@ bool FunctionExecutor::Execute(const CefString& name,
                                CefRefPtr<CefV8Value>& retval,
                                CefString& exception) {
   if (name.ToString() == "setInteractionMode" && arguments.size() == 1) {
-    auto hwnd = reinterpret_cast<HWND>(
-        object->GetValue("mainProcessHwnd")->GetIntValue());
+    // clang-ignore
+    auto hwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(
+        object->GetValue("mainProcessHwnd")->GetIntValue()));
 
     auto enabled = arguments[0]->GetBoolValue();
 

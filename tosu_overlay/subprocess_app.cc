@@ -6,9 +6,6 @@ SubprocessApp::SubprocessApp() {}
 void SubprocessApp::OnContextCreated(CefRefPtr<CefBrowser> browser,
                                      CefRefPtr<CefFrame> frame,
                                      CefRefPtr<CefV8Context> context) {
-  AllocConsole();
-  freopen_s((FILE**)stdout, "con", "w", (FILE*)stdout);
-
   CefRefPtr<CefV8Handler> handler = new FunctionExecutor(this);
 
   context->GetGlobal()->SetValue(
