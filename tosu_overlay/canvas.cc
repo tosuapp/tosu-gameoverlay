@@ -162,35 +162,32 @@ void try_update_texture() {
 }
 
 void create_vertex_buffer() {
-    // Create and bind VAO
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+  // Create and bind VAO
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
 
-    // Create and bind VBO
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  // Create and bind VBO
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    // Vertex data: position (x,y) and texture coordinates (u,v)
-    float vertices[] = {
-        // pos      // tex
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, 1.0f, 1.0f
-    };
+  // Vertex data: position (x,y) and texture coordinates (u,v)
+  float vertices[] = {// pos      // tex
+                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
+                      1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f};
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+  // Position attribute
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
 
-    // Texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+  // Texture coord attribute
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                        (void*)(2 * sizeof(float)));
+  glEnableVertexAttribArray(1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 }
 
 const char* v_shader_src = R"(
@@ -298,36 +295,36 @@ void canvas::create(int32_t width, int32_t height) {
 }
 
 void canvas::draw(HDC hdc) {
-    auto window_size = get_window_size(hdc);
-    if (window_size.x == 0 || window_size.y == 0) {
-        return;
-    }
+  auto window_size = get_window_size(hdc);
+  if (window_size.x == 0 || window_size.y == 0) {
+    return;
+  }
 
-    if (window_size.x != render_size.x || window_size.y != render_size.y) {
-        create(window_size.x, window_size.y);
-    }
+  if (window_size.x != render_size.x || window_size.y != render_size.y) {
+    create(window_size.x, window_size.y);
+  }
 
-    try_update_texture();
+  try_update_texture();
 
-    GLStateBackup state;
-    state.backup();
+  GLStateBackup state;
+  state.backup();
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDisable(GL_CULL_FACE);
+  glDisable(GL_DEPTH_TEST);
 
-    glUseProgram(program);
-    glBindVertexArray(vao);
-    
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(tex_location, 0);
+  glUseProgram(program);
+  glBindVertexArray(vao);
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glUniform1i(tex_location, 0);
 
-    glBindVertexArray(0);
-    glUseProgram(0);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    state.restore();
+  glBindVertexArray(0);
+  glUseProgram(0);
+
+  state.restore();
 }

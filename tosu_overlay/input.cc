@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <tosu_overlay/input.h>
+#include <tosu_overlay/logger.h>
 #include <tosu_overlay/tosu_overlay_handler.h>
 #include <windowsx.h>
 #include <thread>
@@ -416,11 +417,16 @@ void bindings_thread() {
 void input::initialize(HWND hwnd,
                        uint32_t main_thread_id,
                        CefRefPtr<CefBrowser> browser) {
+  logger::log("Input parameters: %x %x %x", hwnd, main_thread_id,
+              browser.get());
+
   main_thread = main_thread_id;
   window_handle = hwnd;
   cef_browser = browser;
 
   if constexpr (sizeof(void*) == 4) {
+    logger::log("Initializing input data reading");
+
     // used for reading input data
     while (!original_get_message) {
       original_get_message = SetWindowsHookExA(            //
@@ -428,11 +434,17 @@ void input::initialize(HWND hwnd,
           GetModuleHandleA(nullptr), GetCurrentThreadId()  //
       );
     }
+
+    logger::log("Input data reading initialized");
   }
+
+  logger::log("Setting WndProc");
 
   // used for blocking inputs
   original_wnd_proc = SetWindowLongPtr(hwnd, GWLP_WNDPROC,
                                        reinterpret_cast<LONG_PTR>(wnd_proc_hk));
+
+  logger::log("WndProc set successfully");
 
   std::thread(bindings_thread).detach();
 }
