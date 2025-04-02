@@ -2,6 +2,8 @@
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <application>
     <assemblyIdentity type="win32" name="tosu" version="0.0.1.0"></assemblyIdentity>
+    <product>tosu</product>
+    <version>0.0.1.0</version>
   </application>
 
   <!--The compatibility section will be merged from build/win/compatibility.manifest -->
