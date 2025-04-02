@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <application>
+    <assemblyIdentity type="win32" name="tosu" version="0.0.1.0"></assemblyIdentity>
+  </application>
 
   <!--The compatibility section will be merged from build/win/compatibility.manifest -->
 
