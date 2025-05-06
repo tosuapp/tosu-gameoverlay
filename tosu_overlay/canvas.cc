@@ -2,6 +2,7 @@
 #include <tosu_overlay/input.h>
 #include <tosu_overlay/tosu_overlay_handler.h>
 #include <mutex>
+#include <atomic> // Added for std::atomic
 
 #include <glad/glad.h>
 
@@ -93,15 +94,20 @@ struct GLStateBackup {
 GLuint texture = 0;
 GLuint program = 0;
 
-GLuint pboIds[4];    // Buffered PBOs
-int currentPBO = 0;  // To track the active PBO
+const int NUM_PBOS = 2;    // Use two PBOs for ping-pong buffering
+GLuint pboIds[NUM_PBOS] = {0};
+int pbo_cef_idx = 0;     // PBO index for CEF to write to
+int pbo_gl_idx = 1;      // PBO index for OpenGL to upload from
 
-uint8_t* render_data;
+// uint8_t* render_data = nullptr; // Removed: CEF will write directly to PBO
 POINT render_size;
 
-std::mutex mutex;
+std::mutex canvas_create_mutex; // Mutex for canvas::create operations
 
-bool update_pending = true;
+// Atomics for synchronization between CEF thread and GL thread
+std::atomic<void*> current_mapped_buffer_for_cef{nullptr};
+std::atomic<bool> cef_buffer_is_ready{false}; // True if a PBO is mapped and ready for CEF
+std::atomic<bool> cef_has_painted{false};     // True if CEF has finished painting to the PBO
 
 GLuint vao = 0;
 GLuint vbo = 0;
@@ -117,48 +123,74 @@ POINT get_window_size(HDC hdc) {
 }
 
 void create_pbos() {
-  glGenBuffers(4, pboIds);  // Create two PBOs
+  // If PBOs already exist, delete them first
+  if (pboIds[0] != 0) {
+    glDeleteBuffers(NUM_PBOS, pboIds);
+  }
+  glGenBuffers(NUM_PBOS, pboIds);  // Create PBOs
 
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < NUM_PBOS; ++i) {
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[i]);
     glBufferData(GL_PIXEL_UNPACK_BUFFER, render_size.x * render_size.y * 4,
                  nullptr, GL_STREAM_DRAW);
   }
 
   glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);  // Unbind PBO
+  pbo_cef_idx = 0;
+  pbo_gl_idx = 1;
 }
 
 void try_update_texture() {
-  std::lock_guard<std::mutex> lock(mutex);
+  // This function is called on the GL thread.
+  // It checks if CEF has painted to its PBO, and if so, uploads it.
+  // Then, it maps the next PBO for CEF.
 
-  if (!update_pending) {
-    return;
+  if (cef_has_painted.load(std::memory_order_acquire)) {
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[pbo_cef_idx]);
+    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // Unmap the buffer CEF wrote to
+    
+    // The buffer is no longer mapped for CEF
+    current_mapped_buffer_for_cef.store(nullptr, std::memory_order_release);
+    // cef_buffer_is_ready will be set to false before mapping the new one,
+    // or if mapping fails. For now, CEF cannot use this specific PBO.
+
+    // Upload data from the PBO that CEF just finished with
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA,
+                    GL_UNSIGNED_BYTE, 0); // Offset is 0 because PBO is bound
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+    cef_has_painted.store(false, std::memory_order_release); // Reset for next paint cycle
+
+    // Swap PBOs: the one just uploaded from becomes the next one for CEF to write to
+    std::swap(pbo_cef_idx, pbo_gl_idx);
+    
+    // Signal that CEF does not have a ready buffer, as we just swapped and unmapped.
+    // The next block will attempt to map the new pbo_cef_idx.
+    cef_buffer_is_ready.store(false, std::memory_order_release);
   }
 
-  update_pending = false;
-
-  // Double-buffered PBO: bind the current PBO for asynchronous update
-  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[currentPBO]);
-
-  // Map the PBO so we can write data to it
-  void* pboMemory = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
-  if (pboMemory) {
-    memcpy(pboMemory, render_data,
-           render_size.x * render_size.y * 4);  // Copy render data to PBO
-    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);      // Unmap buffer after copying
+  // If CEF doesn't have a buffer ready (or we just processed one), map the current pbo_cef_idx for it
+  if (!cef_buffer_is_ready.load(std::memory_order_acquire)) {
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[pbo_cef_idx]);
+    // Map the PBO for writing by CEF. GL_MAP_INVALIDATE_BUFFER_BIT is a hint that previous contents can be discarded.
+    void* pbo_memory = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0,
+                                       render_size.x * render_size.y * 4,
+                                       GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    
+    if (pbo_memory) {
+      current_mapped_buffer_for_cef.store(pbo_memory, std::memory_order_release);
+      cef_buffer_is_ready.store(true, std::memory_order_release);
+    } else {
+      // Handle mapping failure, though ideally this shouldn't happen often with GL_STREAM_DRAW PBOs
+      current_mapped_buffer_for_cef.store(nullptr, std::memory_order_release);
+      cef_buffer_is_ready.store(false, std::memory_order_release);
+      // TODO: Log an error or handle this case more robustly
+    }
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0); // Unbind PBO from GL_PIXEL_UNPACK_BUFFER target
   }
-
-  // Bind the texture and perform the texture update using the PBO
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, render_size.x, render_size.y, GL_BGRA,
-                  GL_UNSIGNED_BYTE, 0);
-
-  // Switch to the other PBO for the next frame
-  currentPBO = (currentPBO + 1) % 4;
-
-  // Unbind PBO and texture after the update
-  glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-  glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void create_vertex_buffer() {
@@ -224,26 +256,43 @@ POINT canvas::get_render_size() {
   return render_size;
 }
 
-void canvas::set_data(const void* data) {
-  std::lock_guard<std::mutex> lock(mutex);
-
-  if (!render_data) {
-    return;
+// Called by CEF thread (OnPaint) to get a direct pointer to a mapped PBO
+void* canvas::get_direct_paint_buffer(int width, int height) {
+  if (width != render_size.x || height != render_size.y) {
+    // Signal to OnPaint that a resize is needed.
+    // OnPaint should then call browser->GetHost()->WasResized(),
+    // which will eventually lead to canvas::create being called on the GL thread.
+    return nullptr;
   }
 
-  memcpy(render_data, data, render_size.x * render_size.y * 4);
+  if (cef_buffer_is_ready.load(std::memory_order_acquire)) {
+    return current_mapped_buffer_for_cef.load(std::memory_order_acquire);
+  }
+  return nullptr; // Buffer not ready or not mapped
+}
 
-  update_pending = true;
+// Called by CEF thread (OnPaint) after it has finished writing to the PBO
+void canvas::notify_paint_complete() {
+  cef_has_painted.store(true, std::memory_order_release);
 }
 
 void canvas::create(int32_t width, int32_t height) {
-  std::lock_guard<std::mutex> lock(mutex);
+  std::lock_guard<std::mutex> lock(canvas_create_mutex);
 
   render_size.x = width;
   render_size.y = height;
 
-  render_data = new uint8_t[width * height * 4];
-  ZeroMemory(render_data, width * height * 4);
+  // If a PBO was mapped for CEF, unmap it before recreating PBOs
+  if (current_mapped_buffer_for_cef.load(std::memory_order_acquire) != nullptr) {
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[pbo_cef_idx]);
+    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+  }
+  current_mapped_buffer_for_cef.store(nullptr, std::memory_order_release);
+  cef_buffer_is_ready.store(false, std::memory_order_release);
+  cef_has_painted.store(false, std::memory_order_release);
+
+  // render_data is removed, no need to delete or reallocate it.
 
   GLint texture2d;
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture2d);
@@ -262,7 +311,7 @@ void canvas::create(int32_t width, int32_t height) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, render_size.x, render_size.y, 0,
-               GL_BGRA, GL_UNSIGNED_BYTE, render_data);
+               GL_BGRA, GL_UNSIGNED_BYTE, nullptr); // Pass nullptr for data initially
   glBindTexture(GL_TEXTURE_2D, texture2d);
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);

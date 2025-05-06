@@ -87,9 +87,6 @@ void TosuOverlay::OnBeforeCommandLineProcessing(
 
   command_line->AppendSwitchWithValue("default-encoding", "utf-8");
 
-  command_line->AppendSwitch("disable-gpu");
-  command_line->AppendSwitch("disable-gpu-compositing");
-
   command_line->AppendSwitch("disable-web-security");
   command_line->AppendSwitch("ignore-certificate-errors");
 

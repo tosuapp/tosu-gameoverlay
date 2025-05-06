@@ -186,11 +186,17 @@ void SimpleHandler::OnPaint(CefRefPtr<CefBrowser> browser,
                             const void* buffer,
                             int width,
                             int height) {
-  auto render_size = canvas::get_render_size();
+  // auto render_size = canvas::get_render_size(); // No longer needed here, canvas handles size check
 
-  if (render_size.x == width && render_size.y == height) {
-    canvas::set_data(buffer);
+  void* pbo_buffer = canvas::get_direct_paint_buffer(width, height);
+
+  if (pbo_buffer) {
+    // Directly copy CEF's buffer to the mapped PBO
+    memcpy(pbo_buffer, buffer, width * height * 4);
+    canvas::notify_paint_complete();
   } else {
+    // Buffer not available or size mismatch, trigger a resize.
+    // canvas::get_direct_paint_buffer returns nullptr if sizes don't match.
     browser->GetHost()->WasResized();
   }
 }
