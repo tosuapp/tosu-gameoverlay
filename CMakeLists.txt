@@ -85,6 +85,16 @@ DownloadCEF("${CEF_PLATFORM}" "${CEF_VERSION}" "${CMAKE_SOURCE_DIR}/third_party/
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 
 # Load the CEF configuration (executes FindCEF.cmake).
+# Ensure CEF_ROOT is defined after DownloadCEF
+if(NOT DEFINED CEF_ROOT)
+    message(FATAL_ERROR "CEF_ROOT is not defined. CEF download/extraction might have failed prior to this point.")
+endif()
+
+# Set CEF_DIR to help find_package locate CEFConfig.cmake
+# CEFConfig.cmake is typically in the 'cmake' subdirectory of the CEF distribution root.
+set(CEF_DIR "${CEF_ROOT}/cmake")
+message(STATUS "CEF_ROOT is: ${CEF_ROOT}")
+message(STATUS "Set CEF_DIR to: ${CEF_DIR} to aid find_package(CEF)")
 find_package(CEF REQUIRED)
 
 #
@@ -160,6 +170,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # TODO: Include other application targets here.
 add_subdirectory(tosu_overlay)
+add_subdirectory(tosu_injector)
 
 # Display configuration settings.
 PRINT_CEF_CONFIG()
